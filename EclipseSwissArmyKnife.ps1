@@ -72,7 +72,7 @@ function Write-Log {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $header = @"
 ===============================================
-Eclipse Swiss Army Knife v2.1.0 - Installation Log
+Eclipse Swiss Army Knife v2.1.2 - Installation Log
 Execution Started: $timestamp
 ===============================================
 
@@ -199,7 +199,7 @@ function Install-NSSM {
 function Get-Configuration {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Eclipse Swiss Army Knife v2.1.0" -ForegroundColor Yellow
+    Write-Host "   Eclipse Swiss Army Knife v2.1.2" -ForegroundColor Yellow
     Write-Host "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
