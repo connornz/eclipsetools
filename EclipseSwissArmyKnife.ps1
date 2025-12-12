@@ -4,12 +4,12 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.0"
+$ScriptVersion = "2.1.1"
 
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.0" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v2.1.1" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
