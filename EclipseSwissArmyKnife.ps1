@@ -3,6 +3,9 @@
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
+# Script Version - Used for automatic update checking
+$ScriptVersion = "2.1.0"
+
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
