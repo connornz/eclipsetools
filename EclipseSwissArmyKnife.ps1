@@ -4,12 +4,12 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.1"
+$ScriptVersion = "2.1.2"
 
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.1" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v2.1.2" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
@@ -39,7 +39,7 @@ function Show-Menu {
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
 
-# PowerShell script for Eclipse Swiss Army Knife v2.1.1
+# PowerShell script for Eclipse Swiss Army Knife v2.1.2
 # Unattended Server Setup - All Options (1-20)
 # This script provides an unattended setup experience for Eclipse server installation
 # Run this script with Administrator privileges
