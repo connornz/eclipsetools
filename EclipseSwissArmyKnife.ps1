@@ -4,12 +4,12 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.2"
+$ScriptVersion = "2.1.3"
 
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.2" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
@@ -39,7 +39,7 @@ function Show-Menu {
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
 
-# PowerShell script for Eclipse Swiss Army Knife v2.1.2
+# PowerShell script for Eclipse Swiss Army Knife v2.1.3
 # Unattended Server Setup - All Options (1-20)
 # This script provides an unattended setup experience for Eclipse server installation
 # Run this script with Administrator privileges
@@ -72,7 +72,7 @@ function Write-Log {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $header = @"
 ===============================================
-Eclipse Swiss Army Knife v2.1.2 - Installation Log
+Eclipse Swiss Army Knife v2.1.3 - Installation Log
 Execution Started: $timestamp
 ===============================================
 
@@ -199,7 +199,7 @@ function Install-NSSM {
 function Get-Configuration {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Eclipse Swiss Army Knife v2.1.2" -ForegroundColor Yellow
+    Write-Host "   Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
     Write-Host "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
@@ -3373,7 +3373,7 @@ function Start-UnattendedMode {
     # Initialize log file
     $script:LogInitialized = $false
     Write-Log "===============================================" -ForegroundColor Cyan
-    Write-Log "   Eclipse Swiss Army Knife v2.1.0" -ForegroundColor Yellow
+    Write-Log "   Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
     Write-Log "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Log "===============================================" -ForegroundColor Cyan
     Write-Log ""
