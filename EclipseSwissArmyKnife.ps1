@@ -33,8 +33,8 @@ function Show-Menu {
     Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome 3.8.21" -ForegroundColor Yellow
     Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server 12.0.89.0" -ForegroundColor Yellow
     Write-Host "[18] " -NoNewline; Write-Host "Update IIS Application Pools" -ForegroundColor Yellow
-    Write-Host "[19] " -NoNewline; Write-Host "Install Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
-    Write-Host "[20] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
+    Write-Host "[19] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
+    Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
@@ -2797,13 +2797,13 @@ function Execute-Task19 {
             Write-Host ""
             
             # Launch Win-ACMEv2 for user configuration
-            Write-Host "Launching Win-ACMEv2 for configuration..." -ForegroundColor Yellow
+            Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
             Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
             Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
             Write-Host ""
             
             try {
-                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -PassThru -Wait
+                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
                 
                 Write-Host ""
                 Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
@@ -2817,7 +2817,7 @@ function Execute-Task19 {
         }
         
         # Download Win-ACMEv2
-        $winAcmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.pluggable.zip"
+        $winAcmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.trimmed.zip"
         $zipPath = Join-Path $targetDir "win-acme.zip"
         
         Write-Host "Downloading Win-ACMEv2 v2.2.9.1701..." -ForegroundColor Yellow
@@ -2861,13 +2861,13 @@ function Execute-Task19 {
             Write-Host ""
             
             # Launch Win-ACMEv2 for user configuration
-            Write-Host "Launching Win-ACMEv2 for configuration..." -ForegroundColor Yellow
+            Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
             Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
             Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
             Write-Host ""
             
             try {
-                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -PassThru -Wait
+                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
                 
                 Write-Host ""
                 Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
