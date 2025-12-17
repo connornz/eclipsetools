@@ -4731,161 +4731,102 @@ function Main {
                 Write-Host "   Install Win-ACMEv2" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 Write-Host ""
-                Write-Host "Checking for .NET 7.0 runtime (required by Win-ACME)..." -ForegroundColor Yellow
                 
-                # Check if .NET 7.0 runtime is installed
-                $dotnet7Installed = $false
-                try {
-                    $dotnetList = dotnet --list-runtimes 2>&1 | Out-String
-                    if ($dotnetList -match "Microsoft\.NETCore\.App 7\.0\.") {
-                        $dotnet7Installed = $true
-                        Write-Host ".NET 7.0 runtime is already installed." -ForegroundColor Green
-                    }
-                } catch {
-                    # Ignore errors
+                # Get Eclipse Install Path
+                $defaultPath = "C:\Eclipse Install"
+                $eclipseInstallPath = Read-Host "Enter Eclipse Install Path (press Enter for default: $defaultPath)"
+                if ([string]::IsNullOrWhiteSpace($eclipseInstallPath)) {
+                    $eclipseInstallPath = $defaultPath
                 }
                 
-                # Install .NET 7.0 runtime if not found
-                if (-not $dotnet7Installed) {
-                    Write-Host ".NET 7.0 runtime not found. Installing..." -ForegroundColor Yellow
+                # Create Dependencies\Win-ACMEv2 directory
+                $targetDir = Join-Path $eclipseInstallPath "Dependencies\Win-ACMEv2"
+                if (!(Test-Path $targetDir)) {
+                    Write-Host "Creating directory: $targetDir" -ForegroundColor Yellow
+                    New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+                    Write-Host "Created directory: $targetDir" -ForegroundColor Green
+                } else {
+                    Write-Host "Directory exists: $targetDir" -ForegroundColor Green
+                }
+                
+                # Check if already extracted
+                $exePath = Join-Path $targetDir "wacs.exe"
+                if (Test-Path $exePath) {
+                    Write-Host "Win-ACMEv2 is already extracted in: $targetDir" -ForegroundColor Green
+                    Write-Host ""
+                } else {
+                    # Download Win-ACMEv2
+                    $winAcmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.trimmed.zip"
+                    $zipPath = Join-Path $targetDir "win-acme.zip"
+                    
+                    Write-Host ""
+                    Write-Host "Downloading Win-ACMEv2 v2.2.9.1701..." -ForegroundColor Yellow
+                    Write-Host "  Source: $winAcmeUrl" -ForegroundColor Gray
+                    
                     try {
-                        # Try winget first
-                        $runtimeProcess = Start-Process -FilePath "winget" -ArgumentList "install", "--id", "Microsoft.DotNet.Runtime.7", "--silent", "--accept-package-agreements", "--accept-source-agreements" -Wait -NoNewWindow -PassThru
-                        if ($runtimeProcess.ExitCode -eq 0) {
-                            Write-Host ".NET 7.0 runtime installed successfully!" -ForegroundColor Green
-                            # Verify installation
-                            Start-Sleep -Seconds 2
-                            $dotnetList = dotnet --list-runtimes 2>&1 | Out-String
-                            if ($dotnetList -match "Microsoft\.NETCore\.App 7\.0\.") {
-                                Write-Host ".NET 7.0 runtime verified." -ForegroundColor Green
-                            } else {
-                                Write-Host "Warning: .NET 7.0 runtime may not have installed correctly." -ForegroundColor Yellow
-                            }
-                        } else {
-                            Write-Host "Warning: .NET 7.0 runtime installation may have had issues (Exit Code: $($runtimeProcess.ExitCode))" -ForegroundColor Yellow
-                            Write-Host "You may need to install it manually from: https://dotnet.microsoft.com/download/dotnet/7.0" -ForegroundColor Yellow
-                        }
+                        $webClient = New-Object System.Net.WebClient
+                        $webClient.DownloadFile($winAcmeUrl, $zipPath)
+                        $webClient.Dispose()
+                        $fileSize = (Get-Item $zipPath).Length / 1MB
+                        Write-Host "Download complete: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
                     } catch {
-                        Write-Host "Failed to install .NET 7.0 runtime via winget: $($_.Exception.Message)" -ForegroundColor Red
-                        Write-Host ""
-                        Write-Host "Please install .NET 7.0 runtime manually:" -ForegroundColor Yellow
-                        Write-Host "  Download from: https://dotnet.microsoft.com/download/dotnet/7.0" -ForegroundColor Yellow
-                        Write-Host "  Or run: winget install Microsoft.DotNet.Runtime.7" -ForegroundColor Yellow
+                        Write-Host "Error downloading Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
                         Write-Host ""
                         Read-Host "Press Enter to continue back to the main menu"
                         continue
                     }
-                }
-                
-                Write-Host ""
-                Write-Host "Installing Win-ACME as a global .NET tool..." -ForegroundColor Yellow
-                try {
-                    $installProcess = Start-Process -FilePath "dotnet" -ArgumentList "tool install win-acme --global" -Wait -NoNewWindow -PassThru
-                    if ($installProcess.ExitCode -eq 0) {
-                        Write-Host "Win-ACME installed successfully!" -ForegroundColor Green
-                    } else {
-                        Write-Host "Warning: Win-ACME installation may have had issues (Exit Code: $($installProcess.ExitCode))" -ForegroundColor Yellow
-                    }
-                } catch {
-                    Write-Host "Failed to install Win-ACME: $($_.Exception.Message)" -ForegroundColor Red
+                    
+                    # Extract ZIP file
                     Write-Host ""
-                    Read-Host "Press Enter to continue back to the main menu"
-                    continue
-                }
-                
-                Write-Host ""
-                Write-Host "Launching Win-ACME (wacs.exe) to issue SSL certificate..." -ForegroundColor Cyan
-                Write-Host "Once you have finished configuring your SSL certificate, close the Win-ACME window to return to the menu." -ForegroundColor Yellow
-                Write-Host ""
-                
-                # Refresh PATH to include newly installed .NET tools
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-                
-                # Find wacs.exe - check standard .NET tools location
-                $userProfile = $env:USERPROFILE
-                $wacsPath = Join-Path $userProfile ".dotnet\tools\wacs.exe"
-                
-                # If not found in standard location, try to find it in PATH
-                if (-not (Test-Path $wacsPath)) {
+                    Write-Host "Extracting Win-ACMEv2..." -ForegroundColor Yellow
+                    
                     try {
-                        $wacsCommand = Get-Command wacs -ErrorAction SilentlyContinue
-                        if ($wacsCommand) {
-                            $wacsPath = $wacsCommand.Source
-                        }
+                        Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
+                        Write-Host "Extraction complete!" -ForegroundColor Green
                     } catch {
-                        # Ignore
+                        Write-Host "Error extracting Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
+                        Write-Host ""
+                        Read-Host "Press Enter to continue back to the main menu"
+                        continue
                     }
+                    
+                    # Clean up ZIP file
+                    Write-Host "Cleaning up..." -ForegroundColor Gray
+                    Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+                    
+                    # Verify extraction
+                    if (!(Test-Path $exePath)) {
+                        Write-Host "Warning: Extraction completed but wacs.exe not found" -ForegroundColor Yellow
+                        Write-Host ""
+                        Read-Host "Press Enter to continue back to the main menu"
+                        continue
+                    }
+                    
+                    Write-Host ""
+                    Write-Host "Win-ACMEv2 extracted successfully!" -ForegroundColor Green
+                    Write-Host "  Location: $targetDir" -ForegroundColor Gray
+                    Write-Host ""
                 }
                 
-                # Launch wacs.exe - prefer direct execution with admin privileges
-                Write-Host "Note: Win-ACME requires administrator privileges to bind SSL certificates." -ForegroundColor Yellow
+                # Launch Win-ACMEv2 for user configuration
+                Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
+                Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
+                Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
                 Write-Host ""
                 
-                # Create a temporary batch file to launch wacs with admin privileges
-                # This ensures the window stays open and visible
-                $tempBatchFile = Join-Path $env:TEMP "launch_wacs.bat"
                 try {
-                    if (Test-Path $wacsPath) {
-                        Write-Host "Found wacs.exe at: $wacsPath" -ForegroundColor Green
-                        Write-Host "Creating launch script..." -ForegroundColor Green
-                        # Create batch file that launches wacs and keeps window open
-                        $batchContent = @"
-@echo off
-title Win-ACME
-cd /d "$(Split-Path $wacsPath -Parent)"
-"$wacsPath"
-echo.
-echo Win-ACME has closed. Press any key to exit...
-pause >nul
-"@
-                        Set-Content -Path $tempBatchFile -Value $batchContent -Encoding ASCII
-                        Write-Host "Launching Win-ACME with administrator privileges..." -ForegroundColor Green
-                        Write-Host ""
-                        # Launch batch file with admin privileges
-                        $wacsProcess = Start-Process -FilePath $tempBatchFile -Verb RunAs -Wait -PassThru
-                        Write-Host ""
-                        Write-Host "Win-ACME has been closed." -ForegroundColor Green
-                    } else {
-                        Write-Host "wacs.exe not found at standard location." -ForegroundColor Yellow
-                        Write-Host "Creating launch script..." -ForegroundColor Green
-                        # Create batch file that uses dotnet tool run
-                        $batchContent = @"
-@echo off
-title Win-ACME
-cd /d "%USERPROFILE%"
-dotnet tool run wacs
-echo.
-echo Win-ACME has closed. Press any key to exit...
-pause >nul
-"@
-                        Set-Content -Path $tempBatchFile -Value $batchContent -Encoding ASCII
-                        Write-Host "Launching Win-ACME via dotnet tool run with administrator privileges..." -ForegroundColor Green
-                        Write-Host ""
-                        # Launch batch file with admin privileges
-                        $wacsProcess = Start-Process -FilePath $tempBatchFile -Verb RunAs -Wait -PassThru
-                        Write-Host ""
-                        Write-Host "Win-ACME has been closed." -ForegroundColor Green
-                    }
+                    $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
+                    
+                    Write-Host ""
+                    Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
+                    Write-Host "Win-ACMEv2 configuration completed!" -ForegroundColor Cyan
                 } catch {
-                    Write-Host "Failed to launch Win-ACME: $($_.Exception.Message)" -ForegroundColor Red
-                    Write-Host ""
-                    Write-Host "The tool is installed. You can manually launch Win-ACME by:" -ForegroundColor Yellow
-                    Write-Host "  1. Opening a new PowerShell/Command Prompt window as Administrator" -ForegroundColor Yellow
-                    Write-Host "  2. Running: dotnet tool run wacs" -ForegroundColor Yellow
-                    Write-Host "  3. Or running: wacs" -ForegroundColor Yellow
-                    Write-Host ""
-                    Read-Host "Press Enter to continue back to the main menu"
-                    continue
-                } finally {
-                    # Clean up temporary batch file
-                    if (Test-Path $tempBatchFile) {
-                        Remove-Item -Path $tempBatchFile -Force -ErrorAction SilentlyContinue
-                    }
+                    Write-Host "Error launching Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
+                    Write-Host "You can run it manually from: $targetDir" -ForegroundColor Gray
                 }
                 
                 Write-Host ""
-                Write-Host "Press any key to return to the main menu..." -ForegroundColor Yellow
-                $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+                Read-Host "Press Enter to continue back to the main menu"
             }
             '20' {
                 Clear-Host
