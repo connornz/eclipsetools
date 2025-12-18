@@ -3335,6 +3335,9 @@ Summary: $successCount succeeded, $failCount failed
         Write-Host "Whitelist the domain using connection information" -ForegroundColor White
         Write-Host "     on ws.dev.ultimate.net.au via MS SQL Server Management Studio" -ForegroundColor Gray
         Write-Host ""
+        Write-Host "  4. " -ForegroundColor Cyan -NoNewline
+        Write-Host "Set up Eclipse Online printers via the Eclipse Smart Hub" -ForegroundColor White
+        Write-Host ""
         Write-Host "===============================================" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "Press [S] to open Eclipse Schema Update, or any other key to exit..." -ForegroundColor Yellow
