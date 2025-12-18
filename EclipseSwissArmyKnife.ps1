@@ -4701,7 +4701,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.89.0.exe"
+                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
                 $installerPath = Join-Path $targetDir "EclipseOnline Server 12.0.113.0.exe"
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
