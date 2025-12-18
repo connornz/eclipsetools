@@ -8,19 +8,16 @@ $ScriptVersion = "2.1.3"
 
 # Download URLs - Update these when new versions are released
 # Option 15: Eclipse Update Service 1.52
-$EclipseUpdateServiceUrl = "https://tnh.net.au/packages/Eclipse Update Service 1.52.msi"  # Unattended mode (MSI)
-$EclipseUpdateServiceUrlInteractive = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"  # Interactive mode (EXE)
+$EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"
 
 # Option 16: Eclipse Online Chrome 3.8.21
-$EclipseOnlineChromeUrl = "https://tnh.net.au/packages/EclipseOnlineChrome3.8.21.exe"  # Unattended mode (EXE)
-$EclipseOnlineChromeUrlInteractive = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"  # Interactive mode (MSI)
+$EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"
 
 # Option 17: Eclipse Online Server 12.0.113.0
 $EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
 
 # Option 20: Eclipse Smart Hub 12.0.101.0
-$EclipseSmartHubUrl = "https://tnh.net.au/packages/EclipseSmartHub12.0.101.0.exe"  # Primary URL (Unattended)
-$EclipseSmartHubUrlAlt = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"  # Fallback URL (Unattended) / Interactive mode
+$EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"
 
 function Show-Menu {
     Clear-Host
@@ -1811,39 +1808,39 @@ function Execute-Task15 {
             Write-Log "Created directory: $targetDir" -ForegroundColor Green
         }
         
-        # Download MSI directly from the server
-        $msiUrl = $EclipseUpdateServiceUrl
-        $msiPath = Join-Path $targetDir "Eclipse Update Service 1.52.msi"
+        # Download installer directly from the server
+        $installerUrl = $EclipseUpdateServiceUrl
+        $installerPath = Join-Path $targetDir "Eclipse Update Service 1.52.exe"
         # Ensure we have an absolute path
-        $msiPath = [System.IO.Path]::GetFullPath($msiPath)
+        $installerPath = [System.IO.Path]::GetFullPath($installerPath)
         
-        if (Test-Path $msiPath) {
-            Write-Log "MSI already downloaded: $msiPath" -ForegroundColor Green
+        if (Test-Path $installerPath) {
+            Write-Log "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Log "Downloading Eclipse Update Service 1.52 MSI..." -ForegroundColor Yellow
-            Write-Log "  Source URL: $msiUrl" -ForegroundColor Gray
-            Write-Log "  Destination: $msiPath" -ForegroundColor Gray
+            Write-Log "Downloading Eclipse Update Service 1.52 installer..." -ForegroundColor Yellow
+            Write-Log "  Source URL: $installerUrl" -ForegroundColor Gray
+            Write-Log "  Destination: $installerPath" -ForegroundColor Gray
             try {
                 $webClient = New-Object System.Net.WebClient
-                $webClient.DownloadFile($msiUrl, $msiPath)
+                $webClient.DownloadFile($installerUrl, $installerPath)
                 $webClient.Dispose()
-                $fileSize = (Get-Item $msiPath).Length / 1MB
-                Write-Log "Download complete: $msiPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
+                $fileSize = (Get-Item $installerPath).Length / 1MB
+                Write-Log "Download complete: $installerPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
             } catch {
-                Write-Log "Error downloading MSI: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Log "Error downloading installer: $($_.Exception.Message)" -ForegroundColor Red
                 return $false
             }
         }
         
-        # Verify MSI file exists and is accessible
-        if (-not (Test-Path $msiPath)) {
-            Write-Log "Error: MSI file not found: $msiPath" -ForegroundColor Red
+        # Verify installer file exists and is accessible
+        if (-not (Test-Path $installerPath)) {
+            Write-Log "Error: Installer file not found: $installerPath" -ForegroundColor Red
             return $false
         }
         
-        $fileInfo = Get-Item $msiPath
-        Write-Log "MSI file details:" -ForegroundColor Gray
-        Write-Log "  Path: $msiPath" -ForegroundColor Gray
+        $fileInfo = Get-Item $installerPath
+        Write-Log "Installer file details:" -ForegroundColor Gray
+        Write-Log "  Path: $installerPath" -ForegroundColor Gray
         Write-Log "  Size: $([math]::Round($fileInfo.Length / 1MB, 2)) MB" -ForegroundColor Gray
         Write-Log "  Last Modified: $($fileInfo.LastWriteTime)" -ForegroundColor Gray
         
@@ -1857,11 +1854,11 @@ function Execute-Task15 {
         # Enable verbose logging
         # Use a simple log path without spaces to avoid potential issues
         $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $msiLogPath = Join-Path $env:TEMP "MSI_$timestamp.log"
-        Write-Log "Verbose MSI logging enabled: $msiLogPath" -ForegroundColor Cyan
+        $installerLogPath = Join-Path $env:TEMP "MSI_$timestamp.log"
+        Write-Log "Verbose installer logging enabled: $installerLogPath" -ForegroundColor Cyan
         Write-Log "Note: If installation hangs, check this log file for errors" -ForegroundColor Yellow
         
-        # Run the MSI directly with msiexec.exe and properties
+        # Run the installer (EXE wrapper around MSI) with properties
         # Based on MSI inspection, the correct property names are:
         # - USERNAME (for username field)
         # - COMPANYNAME (for company/organization field)
@@ -1872,26 +1869,25 @@ function Execute-Task15 {
         )
         $propertiesString = $propertyList -join " "
         
-        Write-Log "Using correct property names from MSI: USERNAME and COMPANYNAME" -ForegroundColor Green
+        Write-Log "Using correct property names: USERNAME and COMPANYNAME" -ForegroundColor Green
         
         # Use /qb for basic UI (shows progress window) - /qn causes exit code 1625
+        # For EXE wrappers, use /S /v"/qb ..." format (InstallShield style)
         # Tested: /qb works perfectly with USERNAME and COMPANYNAME properties
-        $msiArgs = "/i `"$msiPath`" /qb REBOOT=ReallySuppress $propertiesString"
+        $installerArgs = "/S /v`"/qb REBOOT=ReallySuppress $propertiesString`""
         
         Write-Log "Using /qb (basic UI - shows progress window) for installation" -ForegroundColor Green
         Write-Log "Installation should complete in 5-10 seconds" -ForegroundColor Gray
-        
-        Write-Log "Using /qb (basic UI - shows progress window) for installation" -ForegroundColor Green
         Write-Log "Properties: USERNAME=$EclipseClientId, COMPANYNAME=$EclipseClientId" -ForegroundColor Green
-        Write-Log "Command: msiexec.exe $msiArgs" -ForegroundColor DarkGray
+        Write-Log "Command: $installerPath $installerArgs" -ForegroundColor DarkGray
         Write-Log "Properties being passed:" -ForegroundColor Gray
         foreach ($prop in $propertyList) {
             Write-Log "  $prop" -ForegroundColor Gray
         }
         
         $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-        $processInfo.FileName = "$env:SystemRoot\System32\msiexec.exe"
-        $processInfo.Arguments = $msiArgs
+        $processInfo.FileName = $installerPath
+        $processInfo.Arguments = $installerArgs
         $processInfo.UseShellExecute = $true
         $processInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Normal # Normal for /qb to show progress
         $processInfo.WorkingDirectory = $targetDir
@@ -1984,14 +1980,14 @@ function Execute-Task15 {
                 }
                 
                 # Check for MSI log file
-                if (Test-Path $msiLogPath) {
-                    $logSize = (Get-Item $msiLogPath).Length
+                if (Test-Path $installerLogPath) {
+                    $logSize = (Get-Item $installerLogPath).Length
                     Write-Log "  Installation in progress... (Elapsed: ${minutes}m ${seconds}s, Log: $([math]::Round($logSize / 1KB, 2)) KB)" -ForegroundColor Gray
                     
                     # If log exists and is growing, read last few lines to see what's happening
                     if ($logSize -gt 0 -and $totalSeconds % 9 -eq 0) {
                         try {
-                            $lastLines = Get-Content $msiLogPath -Tail 5 -ErrorAction SilentlyContinue
+                            $lastLines = Get-Content $installerLogPath -Tail 5 -ErrorAction SilentlyContinue
                             if ($lastLines) {
                                 Write-Log "  Recent log entries:" -ForegroundColor DarkGray
                                 foreach ($line in $lastLines) {
@@ -2039,7 +2035,7 @@ function Execute-Task15 {
                         Sort-Object LastWriteTime -Descending |
                         Select-Object -First 1
                     
-                    if ($recentMsiLogs -and $recentMsiLogs.FullName -ne $msiLogPath) {
+                    if ($recentMsiLogs -and $recentMsiLogs.FullName -ne $installerLogPath) {
                         Write-Log "  Found alternative MSI log: $($recentMsiLogs.FullName)" -ForegroundColor Cyan
                     }
                 }
@@ -2097,9 +2093,9 @@ function Execute-Task15 {
                 Write-Log "Checking for MSI log files..." -ForegroundColor Yellow
                 
                 # Check for our specific log file
-                if ($msiLogPath -and (Test-Path $msiLogPath)) {
-                    Write-Log "MSI verbose log found: $msiLogPath" -ForegroundColor Green
-                    Write-Log "  Size: $([math]::Round((Get-Item $msiLogPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
+                if ($installerLogPath -and (Test-Path $installerLogPath)) {
+                    Write-Log "Installer verbose log found: $installerLogPath" -ForegroundColor Green
+                    Write-Log "  Size: $([math]::Round((Get-Item $installerLogPath).Length / 1KB, 2)) KB" -ForegroundColor Gray
                 }
             } catch {
                 Write-Log "Note: Could not check log files: $($_.Exception.Message)" -ForegroundColor Gray
@@ -2296,8 +2292,8 @@ function Execute-Task15 {
             # Still try to find log files even on error
             Write-Log ""
             Write-Log "Checking for MSI log files (even though installation failed)..." -ForegroundColor Yellow
-            if ($msiLogPath -and (Test-Path $msiLogPath)) {
-                Write-Log "MSI log file found: $msiLogPath" -ForegroundColor Cyan
+            if ($installerLogPath -and (Test-Path $installerLogPath)) {
+                Write-Log "Installer log file found: $installerLogPath" -ForegroundColor Cyan
             }
             
             # Search for recent log files
@@ -2332,9 +2328,9 @@ function Execute-Task15 {
         Write-Log "  Stack trace: $($_.Exception.StackTrace)" -ForegroundColor Red
         
         # Show log file location even in outer catch
-        if ($msiLogPath) {
+        if ($installerLogPath) {
             Write-Log ""
-            Write-Log "MSI log file location: $msiLogPath" -ForegroundColor Cyan
+            Write-Log "Installer log file location: $installerLogPath" -ForegroundColor Cyan
             Write-Log "Check this file and recent .log files in $env:TEMP for details." -ForegroundColor Yellow
         }
         
@@ -2921,17 +2917,13 @@ function Execute-Task20 {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
         
-        # Try primary URL first, fall back to alternative
+        # Download installer
         $installerUrl = $EclipseSmartHubUrl
-        $installerPath = Join-Path $targetDir "EclipseSmartHub12.0.101.0.exe"
-        $altInstallerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
+        $installerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
         
-        # Check if either installer exists
+        # Check if installer exists
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
-        } elseif (Test-Path $altInstallerPath) {
-            Write-Host "Installer already downloaded: $altInstallerPath" -ForegroundColor Green
-            $installerPath = $altInstallerPath
         } else {
             Write-Host "Downloading Eclipse Smart Hub 12.0.101.0..." -ForegroundColor Yellow
             try {
@@ -2940,13 +2932,8 @@ function Execute-Task20 {
                 $webClient.Dispose()
                 Write-Host "Download complete: $installerPath" -ForegroundColor Green
             } catch {
-                Write-Host "Primary URL failed, trying alternative..." -ForegroundColor Yellow
-                $altUrl = $EclipseSmartHubUrlAlt
-                $webClient = New-Object System.Net.WebClient
-                $webClient.DownloadFile($altUrl, $altInstallerPath)
-                $webClient.Dispose()
-                $installerPath = $altInstallerPath
-                Write-Host "Download complete: $installerPath" -ForegroundColor Green
+                Write-Host "Error downloading installer: $($_.Exception.Message)" -ForegroundColor Red
+                return $false
             }
         }
         
@@ -4663,7 +4650,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = $EclipseUpdateServiceUrlInteractive
+                $installerUrl = $EclipseUpdateServiceUrl
                 $installerPath = Join-Path $targetDir "Eclipse Update Service 1.52.exe"
                 Write-Host "Downloading Eclipse Update Service 1.52 installer..." -ForegroundColor Yellow
                 try {
@@ -4690,7 +4677,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = $EclipseOnlineChromeUrlInteractive
+                $installerUrl = $EclipseOnlineChromeUrl
                 $installerPath = Join-Path $targetDir "EclipseOnline Chrome 3.8.21.msi"
                 Write-Host "Downloading Eclipse Online Chrome 3.8.21 installer..." -ForegroundColor Yellow
                 try {
@@ -4854,7 +4841,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = $EclipseSmartHubUrlAlt
+                $installerUrl = $EclipseSmartHubUrl
                 $installerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
