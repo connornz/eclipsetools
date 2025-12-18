@@ -6,6 +6,22 @@
 # Script Version - Used for automatic update checking
 $ScriptVersion = "2.1.3"
 
+# Download URLs - Update these when new versions are released
+# Option 15: Eclipse Update Service 1.52
+$EclipseUpdateServiceUrl = "https://tnh.net.au/packages/Eclipse Update Service 1.52.msi"  # Unattended mode (MSI)
+$EclipseUpdateServiceUrlInteractive = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"  # Interactive mode (EXE)
+
+# Option 16: Eclipse Online Chrome 3.8.21
+$EclipseOnlineChromeUrl = "https://tnh.net.au/packages/EclipseOnlineChrome3.8.21.exe"  # Unattended mode (EXE)
+$EclipseOnlineChromeUrlInteractive = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"  # Interactive mode (MSI)
+
+# Option 17: Eclipse Online Server 12.0.113.0
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
+
+# Option 20: Eclipse Smart Hub 12.0.101.0
+$EclipseSmartHubUrl = "https://tnh.net.au/packages/EclipseSmartHub12.0.101.0.exe"  # Primary URL (Unattended)
+$EclipseSmartHubUrlAlt = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"  # Fallback URL (Unattended) / Interactive mode
+
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
@@ -1796,7 +1812,7 @@ function Execute-Task15 {
         }
         
         # Download MSI directly from the server
-        $msiUrl = "https://tnh.net.au/packages/Eclipse Update Service 1.52.msi"
+        $msiUrl = $EclipseUpdateServiceUrl
         $msiPath = Join-Path $targetDir "Eclipse Update Service 1.52.msi"
         # Ensure we have an absolute path
         $msiPath = [System.IO.Path]::GetFullPath($msiPath)
@@ -2362,7 +2378,7 @@ function Execute-Task16 {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
         
-        $installerUrl = "https://tnh.net.au/packages/EclipseOnlineChrome3.8.21.exe"
+        $installerUrl = $EclipseOnlineChromeUrl
         $installerPath = Join-Path $targetDir "EclipseOnlineChrome3.8.21.exe"
         
         if (Test-Path $installerPath) {
@@ -2402,7 +2418,7 @@ function Execute-Task17 {
             Write-Log "Created directory: $targetDir" -ForegroundColor Green
         }
         
-        $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
+        $installerUrl = $EclipseOnlineServerUrl
         $installerPath = Join-Path $targetDir "EclipseOnlineServer12.0.113.0.exe"
         
         if (Test-Path $installerPath) {
@@ -2906,7 +2922,7 @@ function Execute-Task20 {
         }
         
         # Try primary URL first, fall back to alternative
-        $installerUrl = "https://tnh.net.au/packages/EclipseSmartHub12.0.101.0.exe"
+        $installerUrl = $EclipseSmartHubUrl
         $installerPath = Join-Path $targetDir "EclipseSmartHub12.0.101.0.exe"
         $altInstallerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
         
@@ -2925,7 +2941,7 @@ function Execute-Task20 {
                 Write-Host "Download complete: $installerPath" -ForegroundColor Green
             } catch {
                 Write-Host "Primary URL failed, trying alternative..." -ForegroundColor Yellow
-                $altUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"
+                $altUrl = $EclipseSmartHubUrlAlt
                 $webClient = New-Object System.Net.WebClient
                 $webClient.DownloadFile($altUrl, $altInstallerPath)
                 $webClient.Dispose()
@@ -4647,7 +4663,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"
+                $installerUrl = $EclipseUpdateServiceUrlInteractive
                 $installerPath = Join-Path $targetDir "Eclipse Update Service 1.52.exe"
                 Write-Host "Downloading Eclipse Update Service 1.52 installer..." -ForegroundColor Yellow
                 try {
@@ -4674,7 +4690,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"
+                $installerUrl = $EclipseOnlineChromeUrlInteractive
                 $installerPath = Join-Path $targetDir "EclipseOnline Chrome 3.8.21.msi"
                 Write-Host "Downloading Eclipse Online Chrome 3.8.21 installer..." -ForegroundColor Yellow
                 try {
@@ -4701,7 +4717,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
+                $installerUrl = $EclipseOnlineServerUrl
                 $installerPath = Join-Path $targetDir "EclipseOnline Server 12.0.113.0.exe"
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
@@ -4838,7 +4854,7 @@ function Main {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"
+                $installerUrl = $EclipseSmartHubUrlAlt
                 $installerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
