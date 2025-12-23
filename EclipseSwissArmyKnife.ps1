@@ -4,7 +4,7 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.3"
+$ScriptVersion = "2.1.4"
 
 # Download URLs - Update these when new versions are released
 # Option 15: Eclipse Update Service 1.52
@@ -13,8 +13,8 @@ $EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/Eclipse
 # Option 16: Eclipse Online Chrome 3.8.21
 $EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"
 
-# Option 17: Eclipse Online Server 12.0.113.0
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.113.0.exe"
+# Option 17: Eclipse Online Server
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.120.0.exe"
 
 # Option 20: Eclipse Smart Hub 12.0.101.0
 $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"
@@ -22,7 +22,7 @@ $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmart
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
@@ -44,7 +44,7 @@ function Show-Menu {
     Write-Host "[14] " -NoNewline; Write-Host "Download .NET Framework 4.8 (System Restart Needed)" -ForegroundColor Yellow
     Write-Host "[15] " -NoNewline; Write-Host "Download Eclipse Update Service 1.52" -ForegroundColor Yellow
     Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome 3.8.21" -ForegroundColor Yellow
-    Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server 12.0.113.0" -ForegroundColor Yellow
+    Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server 12.0.120.0" -ForegroundColor Yellow
     Write-Host "[18] " -NoNewline; Write-Host "Update IIS Application Pools" -ForegroundColor Yellow
     Write-Host "[19] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
     Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
@@ -52,7 +52,7 @@ function Show-Menu {
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
 
-# PowerShell script for Eclipse Swiss Army Knife v2.1.3
+# PowerShell script for Eclipse Swiss Army Knife v2.1.4
 # Unattended Server Setup - All Options (1-20)
 # This script provides an unattended setup experience for Eclipse server installation
 # Run this script with Administrator privileges
@@ -85,7 +85,7 @@ function Write-Log {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $header = @"
 ===============================================
-Eclipse Swiss Army Knife v2.1.3 - Installation Log
+Eclipse Swiss Army Knife v2.1.4 - Installation Log
 Execution Started: $timestamp
 ===============================================
 
@@ -212,7 +212,7 @@ function Install-NSSM {
 function Get-Configuration {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
+    Write-Host "   Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
     Write-Host "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
@@ -353,7 +353,7 @@ function Show-TaskSelectionMenu {
         @{Id=13; Name="Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22"; Selected=$SelectedTasks[13]},
         @{Id=14; Name="Download .NET Framework 4.8"; Selected=$SelectedTasks[14]},
         @{Id=15; Name="Download Eclipse Update Service 1.52"; Selected=$SelectedTasks[15]},
-        @{Id=17; Name="Install Eclipse Online Server 12.0.113.0 & Create IIS Binding"; Selected=$SelectedTasks[17]},
+        @{Id=17; Name="Install Eclipse Online Server 12.0.120.0 & Create IIS Binding"; Selected=$SelectedTasks[17]},
         @{Id=18; Name="Update IIS Application Pools"; Selected=$SelectedTasks[18]},
         @{Id=19; Name="Install Eclipse Smart Hub 12.0.101.0"; Selected=$SelectedTasks[19]},
         @{Id=20; Name="Install Win-ACMEv2"; Selected=$SelectedTasks[20]}
@@ -2415,12 +2415,12 @@ function Execute-Task17 {
         }
         
         $installerUrl = $EclipseOnlineServerUrl
-        $installerPath = Join-Path $targetDir "EclipseOnlineServer12.0.113.0.exe"
+        $installerPath = Join-Path $targetDir "EclipseOnlineServer12.0.120.0.exe"
         
         if (Test-Path $installerPath) {
             Write-Log "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Log "Downloading Eclipse Online Server 12.0.113.0..." -ForegroundColor Yellow
+            Write-Log "Downloading Eclipse Online Server 12.0.120.0..." -ForegroundColor Yellow
             Write-Log "  Source URL: $installerUrl" -ForegroundColor Gray
             Write-Log "  Destination: $installerPath" -ForegroundColor Gray
             $webClient = New-Object System.Net.WebClient
@@ -2430,12 +2430,12 @@ function Execute-Task17 {
             Write-Log "Download complete: $installerPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
         }
         
-        Write-Log "Eclipse Online Server 12.0.113.0 downloaded successfully!" -ForegroundColor Cyan
+        Write-Log "Eclipse Online Server 12.0.120.0 downloaded successfully!" -ForegroundColor Cyan
         Write-Log ""
         
         # Install Eclipse Online Server silently to C:\inetpub\Eclipse
         $installPath = "C:\inetpub\Eclipse"
-        Write-Log "Installing Eclipse Online Server 12.0.113.0..." -ForegroundColor Yellow
+        Write-Log "Installing Eclipse Online Server 12.0.120.0..." -ForegroundColor Yellow
         Write-Log "  Installation path: $installPath" -ForegroundColor Gray
         
         # Check if already installed
@@ -2519,7 +2519,7 @@ function Execute-Task17 {
         }
         
         Write-Log ""
-        Write-Log "Eclipse Online Server 12.0.113.0 installation completed!" -ForegroundColor Cyan
+        Write-Log "Eclipse Online Server 12.0.120.0 installation completed!" -ForegroundColor Cyan
         return $true
     } catch {
         Write-Log "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -3379,7 +3379,7 @@ function Start-UnattendedMode {
     # Initialize log file
     $script:LogInitialized = $false
     Write-Log "===============================================" -ForegroundColor Cyan
-    Write-Log "   Eclipse Swiss Army Knife v2.1.3" -ForegroundColor Yellow
+    Write-Log "   Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
     Write-Log "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Log "===============================================" -ForegroundColor Cyan
     Write-Log ""
@@ -4700,7 +4700,7 @@ function Main {
             '17' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Download Eclipse Online Server (Aura) 12.0.113.0" -ForegroundColor Yellow
+                Write-Host "   Download Eclipse Online Server (Aura) 12.0.120.0" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Dependencies"
                 if (!(Test-Path $targetDir)) {
@@ -4708,11 +4708,11 @@ function Main {
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseOnlineServerUrl
-                $installerPath = Join-Path $targetDir "EclipseOnline Server 12.0.113.0.exe"
+                $installerPath = Join-Path $targetDir "EclipseOnline Server 12.0.120.0.exe"
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
-                    Write-Host "Downloading Eclipse Online Server 12.0.113.0 installer..." -ForegroundColor Yellow
+                    Write-Host "Downloading Eclipse Online Server 12.0.120.0 installer..." -ForegroundColor Yellow
                     try {
                         $webClient = New-Object System.Net.WebClient
                         $webClient.DownloadFile($installerUrl, $installerPath)
@@ -4727,7 +4727,7 @@ function Main {
                 }
                 Write-Host "Launching installer..." -ForegroundColor Cyan
                 Start-Process -FilePath $installerPath -Verb RunAs
-                Write-Host "Eclipse Online Server 12.0.113.0 installation started!" -ForegroundColor Green
+                Write-Host "Eclipse Online Server 12.0.120.0 installation started!" -ForegroundColor Green
                 Write-Host ""
                 Read-Host "Press Enter to continue back to the main menu"
             }
