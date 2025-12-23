@@ -4,7 +4,7 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.4"
+$ScriptVersion = "2.1.5"
 
 # Download URLs - Update these when new versions are released
 # Option 15: Eclipse Update Service 1.52
@@ -22,7 +22,7 @@ $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmart
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
@@ -52,7 +52,7 @@ function Show-Menu {
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
 
-# PowerShell script for Eclipse Swiss Army Knife v2.1.4
+# PowerShell script for Eclipse Swiss Army Knife v2.1.5
 # Unattended Server Setup - All Options (1-20)
 # This script provides an unattended setup experience for Eclipse server installation
 # Run this script with Administrator privileges
@@ -85,7 +85,7 @@ function Write-Log {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $header = @"
 ===============================================
-Eclipse Swiss Army Knife v2.1.4 - Installation Log
+Eclipse Swiss Army Knife v2.1.5 - Installation Log
 Execution Started: $timestamp
 ===============================================
 
@@ -212,7 +212,7 @@ function Install-NSSM {
 function Get-Configuration {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
+    Write-Host "   Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
     Write-Host "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
@@ -2591,6 +2591,43 @@ function Execute-Task18 {
             Write-Log "Failed to create/configure EclipseAuraCore pool: $($_.Exception.Message)" -ForegroundColor Red
         }
         
+        # Create EclipseAuraAuth pool (.NET CLR v4.0, Integrated, LocalSystem)
+        try {
+            $highestClr = "v4.0"
+            $auraAuthExists = Get-Item IIS:\AppPools\EclipseAuraAuth -ErrorAction SilentlyContinue
+            if (-not $auraAuthExists) {
+                New-WebAppPool -Name "EclipseAuraAuth"
+                Start-Sleep -Seconds 1
+                Write-Log "Application Pool 'EclipseAuraAuth' created!" -ForegroundColor Green
+            } else {
+                Write-Log "Application Pool 'EclipseAuraAuth' already exists. Updating configuration..." -ForegroundColor Yellow
+            }
+            Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "managedRuntimeVersion" -Value $highestClr
+            Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "managedPipelineMode" -Value "Integrated"
+            Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "processModel.identityType" -Value "LocalSystem"
+            Write-Log "Application Pool 'EclipseAuraAuth' configured!" -ForegroundColor Green
+        } catch {
+            Write-Log "Failed to create/configure EclipseAuraAuth pool: $($_.Exception.Message)" -ForegroundColor Red
+        }
+        
+        # Create EclipseAuraCoreAuth pool (No Managed Code, Integrated, LocalSystem)
+        try {
+            $auraCoreAuthExists = Get-Item IIS:\AppPools\EclipseAuraCoreAuth -ErrorAction SilentlyContinue
+            if (-not $auraCoreAuthExists) {
+                New-WebAppPool -Name "EclipseAuraCoreAuth"
+                Start-Sleep -Seconds 1
+                Write-Log "Application Pool 'EclipseAuraCoreAuth' created!" -ForegroundColor Green
+            } else {
+                Write-Log "Application Pool 'EclipseAuraCoreAuth' already exists. Updating configuration..." -ForegroundColor Yellow
+            }
+            Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "managedRuntimeVersion" -Value ""
+            Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "managedPipelineMode" -Value "Integrated"
+            Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "processModel.identityType" -Value "LocalSystem"
+            Write-Log "Application Pool 'EclipseAuraCoreAuth' configured!" -ForegroundColor Green
+        } catch {
+            Write-Log "Failed to create/configure EclipseAuraCoreAuth pool: $($_.Exception.Message)" -ForegroundColor Red
+        }
+        
         # Create folders in C:\inetpub\Eclipse if not found
         $basePath = "C:\inetpub\Eclipse"
         $folders = @("AuraApi", "eclipseApi", "oAuth", "oAuth2")
@@ -2732,8 +2769,8 @@ function Execute-Task18 {
         $appsToCreate = @(
             @{ Name = "/AuraApi"; Folder = "AuraApi"; Pool = "EclipseAuraCore" },
             @{ Name = "/eclipseApi"; Folder = "eclipseApi"; Pool = "Eclipse" },
-            @{ Name = "/oAuth"; Folder = "oAuth"; Pool = "Eclipse" },
-            @{ Name = "/oAuth2"; Folder = "oAuth2"; Pool = "EclipseAuraCore" }
+            @{ Name = "/oAuth"; Folder = "oAuth"; Pool = "EclipseAuraAuth" },
+            @{ Name = "/oAuth2"; Folder = "oAuth2"; Pool = "EclipseAuraCoreAuth" }
         )
         foreach ($app in $appsToCreate) {
             $appPath = Join-Path $basePath $app.Folder
@@ -2753,7 +2790,7 @@ function Execute-Task18 {
         # Start or recycle the Eclipse application pools
         Write-Log ""
         Write-Log "Starting/recycling Eclipse application pools..." -ForegroundColor Yellow
-        $poolsToStart = @("Eclipse", "EclipseAuraCore")
+        $poolsToStart = @("Eclipse", "EclipseAuraCore", "EclipseAuraAuth", "EclipseAuraCoreAuth")
         foreach ($poolName in $poolsToStart) {
             try {
                 $pool = Get-Item "IIS:\AppPools\$poolName" -ErrorAction SilentlyContinue
@@ -3379,7 +3416,7 @@ function Start-UnattendedMode {
     # Initialize log file
     $script:LogInitialized = $false
     Write-Log "===============================================" -ForegroundColor Cyan
-    Write-Log "   Eclipse Swiss Army Knife v2.1.4" -ForegroundColor Yellow
+    Write-Log "   Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
     Write-Log "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Log "===============================================" -ForegroundColor Cyan
     Write-Log ""
@@ -4377,9 +4414,46 @@ function Main {
                         $err = $_
                         Write-Host ("Failed to create/configure EclipseAuraCore pool: {0}" -f $err.Exception.Message) -ForegroundColor Red
                     }
+                    # Create EclipseAuraAuth pool (.NET CLR v4.0, Integrated, LocalSystem)
+                    try {
+                        $highestClr = "v4.0"
+                        $auraAuthExists = Get-Item IIS:\AppPools\EclipseAuraAuth -ErrorAction SilentlyContinue
+                        if (-not $auraAuthExists) {
+                            New-WebAppPool -Name "EclipseAuraAuth"
+                            Start-Sleep -Seconds 1
+                            Write-Host "Application Pool 'EclipseAuraAuth' created!" -ForegroundColor Green
+                        } else {
+                            Write-Host "Application Pool 'EclipseAuraAuth' already exists. Updating configuration..." -ForegroundColor Yellow
+                        }
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "managedRuntimeVersion" -Value $highestClr
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "managedPipelineMode" -Value "Integrated"
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraAuth -Name "processModel.identityType" -Value "LocalSystem"
+                        Write-Host "Application Pool 'EclipseAuraAuth' configured!" -ForegroundColor Green
+                    } catch {
+                        $err = $_
+                        Write-Host ("Failed to create/configure EclipseAuraAuth pool: {0}" -f $err.Exception.Message) -ForegroundColor Red
+                    }
+                    # Create EclipseAuraCoreAuth pool (No Managed Code, Integrated, LocalSystem)
+                    try {
+                        $auraCoreAuthExists = Get-Item IIS:\AppPools\EclipseAuraCoreAuth -ErrorAction SilentlyContinue
+                        if (-not $auraCoreAuthExists) {
+                            New-WebAppPool -Name "EclipseAuraCoreAuth"
+                            Start-Sleep -Seconds 1
+                            Write-Host "Application Pool 'EclipseAuraCoreAuth' created!" -ForegroundColor Green
+                        } else {
+                            Write-Host "Application Pool 'EclipseAuraCoreAuth' already exists. Updating configuration..." -ForegroundColor Yellow
+                        }
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "managedRuntimeVersion" -Value ""
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "managedPipelineMode" -Value "Integrated"
+                        Set-ItemProperty IIS:\AppPools\EclipseAuraCoreAuth -Name "processModel.identityType" -Value "LocalSystem"
+                        Write-Host "Application Pool 'EclipseAuraCoreAuth' configured!" -ForegroundColor Green
+                    } catch {
+                        $err = $_
+                        Write-Host ("Failed to create/configure EclipseAuraCoreAuth pool: {0}" -f $err.Exception.Message) -ForegroundColor Red
+                    }
                     # Create folders in C:\inetpub\Eclipse if not found
                     $basePath = "C:\inetpub\Eclipse"
-                    $folders = @("eclipseApi", "oAuth2")
+                    $folders = @("AuraApi", "eclipseApi", "oAuth", "oAuth2")
                     foreach ($folder in $folders) {
                         $fullPath = Join-Path $basePath $folder
                         if (-not (Test-Path $fullPath)) {
@@ -4461,8 +4535,8 @@ function Main {
                     $appsToCreate = @(
                         @{ Name = "/AuraApi"; Folder = "AuraApi"; Pool = "EclipseAuraCore" },
                         @{ Name = "/eclipseApi"; Folder = "eclipseApi"; Pool = "Eclipse" },
-                        @{ Name = "/oAuth"; Folder = "oAuth"; Pool = "Eclipse" },
-                        @{ Name = "/oAuth2"; Folder = "oAuth2"; Pool = "EclipseAuraCore" }
+                        @{ Name = "/oAuth"; Folder = "oAuth"; Pool = "EclipseAuraAuth" },
+                        @{ Name = "/oAuth2"; Folder = "oAuth2"; Pool = "EclipseAuraCoreAuth" }
                     )
                     foreach ($app in $appsToCreate) {
                         $appPath = Join-Path $basePath $app.Folder
@@ -4482,7 +4556,7 @@ function Main {
                     # Start or recycle the Eclipse application pools
                     Write-Host ""
                     Write-Host "Starting/recycling Eclipse application pools..." -ForegroundColor Yellow
-                    $poolsToStart = @("Eclipse", "EclipseAuraCore")
+                    $poolsToStart = @("Eclipse", "EclipseAuraCore", "EclipseAuraAuth", "EclipseAuraCoreAuth")
                     foreach ($poolName in $poolsToStart) {
                         try {
                             $pool = Get-WebAppPoolState -Name $poolName -ErrorAction SilentlyContinue
