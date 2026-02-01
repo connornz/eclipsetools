@@ -1,10 +1,10 @@
-﻿# PowerShell script for Eclipse Swiss Army Knife
+# PowerShell script for Eclipse Swiss Army Knife
 # This script will provide a menu to perform the main actions described in the README
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.5"
+$ScriptVersion = "2.1.6"
 
 # Download URLs - Update these when new versions are released
 # Option 15: Eclipse Update Service 1.52
@@ -22,7 +22,7 @@ $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmart
 function Show-Menu {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "      Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
+    Write-Host "      Eclipse Swiss Army Knife v$ScriptVersion" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "[1]  " -NoNewline; Write-Host "Create Eclipse Install Directory Structure" -ForegroundColor Green
     Write-Host "[2]  " -NoNewline; Write-Host "Share Eclipse Install Directory" -ForegroundColor Green
@@ -52,7 +52,7 @@ function Show-Menu {
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
 
-# PowerShell script for Eclipse Swiss Army Knife v2.1.5
+# PowerShell script for Eclipse Swiss Army Knife v$ScriptVersion
 # Unattended Server Setup - All Options (1-20)
 # This script provides an unattended setup experience for Eclipse server installation
 # Run this script with Administrator privileges
@@ -85,7 +85,7 @@ function Write-Log {
         $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
         $header = @"
 ===============================================
-Eclipse Swiss Army Knife v2.1.5 - Installation Log
+Eclipse Swiss Army Knife v$ScriptVersion - Installation Log
 Execution Started: $timestamp
 ===============================================
 
@@ -212,7 +212,7 @@ function Install-NSSM {
 function Get-Configuration {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
+    Write-Host "   Eclipse Swiss Army Knife v$ScriptVersion" -ForegroundColor Yellow
     Write-Host "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
@@ -3416,7 +3416,7 @@ function Start-UnattendedMode {
     # Initialize log file
     $script:LogInitialized = $false
     Write-Log "===============================================" -ForegroundColor Cyan
-    Write-Log "   Eclipse Swiss Army Knife v2.1.5" -ForegroundColor Yellow
+    Write-Log "   Eclipse Swiss Army Knife v$ScriptVersion" -ForegroundColor Yellow
     Write-Log "   Unattended Server Setup" -ForegroundColor Yellow
     Write-Log "===============================================" -ForegroundColor Cyan
     Write-Log ""
@@ -3575,6 +3575,51 @@ function Main {
                             Write-Host "Expecting to see esbListener.exe running..." -ForegroundColor Gray
                             Write-Host "===============================================" -ForegroundColor Red
                         }
+                        
+                        # Create scheduled task for daily restart
+                        Write-Host ""
+                        Write-Host "Creating scheduled task for daily restart at $restartTime..." -ForegroundColor Yellow
+                        
+                        $taskName = "$serviceName-DailyRestart"
+                        
+                        # Remove existing task if it exists
+                        $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                        if ($existingTask) {
+                            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+                        }
+                        
+                        # Create the PowerShell script that will restart the service
+                        $restartScript = @"
+# Stop the service
+net stop $serviceName
+
+# Kill esbListener.exe if it's still running
+Get-Process -Name "esbListener" -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# Wait a moment
+Start-Sleep -Seconds 3
+
+# Start the service
+net start $serviceName
+"@
+                        
+                        # Create action to run PowerShell with the script
+                        $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -Command `"$restartScript`""
+                        
+                        # Create trigger for daily at specified time
+                        $trigger = New-ScheduledTaskTrigger -Daily -At $restartTime
+                        
+                        # Create task principal (run as SYSTEM)
+                        $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                        
+                        # Create task settings
+                        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+                        
+                        # Register the scheduled task
+                        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Daily restart of $displayName at $restartTime" | Out-Null
+                        
+                        Write-Host "Scheduled task '$taskName' created successfully!" -ForegroundColor Green
+                        Write-Host "The service will restart daily at $restartTime" -ForegroundColor Cyan
                     }
                     Write-Host ""
                     Read-Host "Press Enter to continue back to the main menu"
@@ -3679,6 +3724,48 @@ function Main {
                         Write-Host "===============================================" -ForegroundColor Green
                         Write-Host "Stock Exporter Service installed and started successfully!" -ForegroundColor Green
                         Write-Host "===============================================" -ForegroundColor Green
+                        
+                        # Create scheduled task for daily restart
+                        Write-Host ""
+                        Write-Host "Creating scheduled task for daily restart at $restartTime..." -ForegroundColor Yellow
+                        
+                        $taskName = "$serviceName-DailyRestart"
+                        
+                        # Remove existing task if it exists
+                        $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                        if ($existingTask) {
+                            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+                        }
+                        
+                        # Create the PowerShell script that will restart the service
+                        $restartScript = @"
+# Stop the service
+net stop $serviceName
+
+# Wait a moment
+Start-Sleep -Seconds 3
+
+# Start the service
+net start $serviceName
+"@
+                        
+                        # Create action to run PowerShell with the script
+                        $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -Command `"$restartScript`""
+                        
+                        # Create trigger for daily at specified time
+                        $trigger = New-ScheduledTaskTrigger -Daily -At $restartTime
+                        
+                        # Create task principal (run as SYSTEM)
+                        $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                        
+                        # Create task settings
+                        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+                        
+                        # Register the scheduled task
+                        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Daily restart of $displayName at $restartTime" | Out-Null
+                        
+                        Write-Host "Scheduled task '$taskName' created successfully!" -ForegroundColor Green
+                        Write-Host "The service will restart daily at $restartTime" -ForegroundColor Cyan
                     }
                     Write-Host ""
                     Read-Host "Press Enter to continue back to the main menu"
