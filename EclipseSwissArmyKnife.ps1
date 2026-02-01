@@ -4,7 +4,7 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.7"
+$ScriptVersion = "2.1.8"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS 2037.26.22
@@ -3538,10 +3538,14 @@ function Main {
                     if (!(Install-NSSM -NssmPath $nssmPath)) {
                         Write-Host "Failed to install NSSM. Cannot proceed with service installation." -ForegroundColor Red
                     } else {
+                        # Check if service already exists and remove it
                         if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+                            Write-Host "Existing service '$serviceName' found. Removing..." -ForegroundColor Yellow
                             Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
                             & $nssmPath remove $serviceName confirm
+                            Write-Host "Existing service removed." -ForegroundColor Green
                         }
+                        Write-Host "Installing service '$serviceName'..." -ForegroundColor Yellow
                         & $nssmPath install $serviceName $exePath
                         & $nssmPath set $serviceName DisplayName $displayName
                         & $nssmPath set $serviceName Description $description
@@ -3588,7 +3592,9 @@ function Main {
                         # Remove existing task if it exists
                         $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
                         if ($existingTask) {
+                            Write-Host "Existing scheduled task '$taskName' found. Removing..." -ForegroundColor Yellow
                             Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+                            Write-Host "Existing scheduled task removed." -ForegroundColor Green
                         }
                         
                         # Create the PowerShell script that will restart the service
@@ -3707,10 +3713,14 @@ net start $serviceName
                     if (!(Install-NSSM -NssmPath $nssmPath)) {
                         Write-Host "Failed to install NSSM. Cannot proceed with service installation." -ForegroundColor Red
                     } else {
+                        # Check if service already exists and remove it
                         if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+                            Write-Host "Existing service '$serviceName' found. Removing..." -ForegroundColor Yellow
                             Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
                             & $nssmPath remove $serviceName confirm
+                            Write-Host "Existing service removed." -ForegroundColor Green
                         }
+                        Write-Host "Installing service '$serviceName'..." -ForegroundColor Yellow
                         & $nssmPath install $serviceName $exePath
                         & $nssmPath set $serviceName DisplayName $displayName
                         & $nssmPath set $serviceName Description $description
@@ -3737,7 +3747,9 @@ net start $serviceName
                         # Remove existing task if it exists
                         $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
                         if ($existingTask) {
+                            Write-Host "Existing scheduled task '$taskName' found. Removing..." -ForegroundColor Yellow
                             Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+                            Write-Host "Existing scheduled task removed." -ForegroundColor Green
                         }
                         
                         # Create the PowerShell script that will restart the service
