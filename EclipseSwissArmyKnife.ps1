@@ -4,9 +4,12 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.6"
+$ScriptVersion = "2.1.7"
 
 # Download URLs - Update these when new versions are released
+# Option 6: Eclipse DMS 2037.26.22
+$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-26-22.msi"
+
 # Option 15: Eclipse Update Service 1.52
 $EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"
 
@@ -14,10 +17,10 @@ $EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/Eclipse
 $EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"
 
 # Option 17: Eclipse Online Server
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.120.0.exe"
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.130.0.exe"
 
 # Option 20: Eclipse Smart Hub 12.0.101.0
-$EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.0.101.0.exe"
+$EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.4.1.0.exe"
 
 function Show-Menu {
     Clear-Host
@@ -29,7 +32,7 @@ function Show-Menu {
     Write-Host "[3]  " -NoNewline; Write-Host "Download SQL Server Express 2025" -ForegroundColor Green
     Write-Host "[4]  " -NoNewline; Write-Host "Download SQL Server Management Studio 21" -ForegroundColor Green
     Write-Host "[5]  " -NoNewline; Write-Host "Configure SQL Server Network Protocols" -ForegroundColor Green
-    Write-Host "[6]  " -NoNewline; Write-Host "Install/Update Eclipse DMS 2037.25.334" -ForegroundColor Green
+    Write-Host "[6]  " -NoNewline; Write-Host "Install/Update Eclipse DMS 2037.26.22" -ForegroundColor Green
     Write-Host "[7]  " -NoNewline; Write-Host "Extract Eclipse Database Registry Keys" -ForegroundColor Green
     Write-Host "[8]  " -NoNewline; Write-Host "Add Ultimate Domains to Trusted Sites" -ForegroundColor Green
     Write-Host ""
@@ -47,7 +50,7 @@ function Show-Menu {
     Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server 12.0.120.0" -ForegroundColor Yellow
     Write-Host "[18] " -NoNewline; Write-Host "Update IIS Application Pools" -ForegroundColor Yellow
     Write-Host "[19] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
-    Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
+    Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
@@ -346,7 +349,7 @@ function Show-TaskSelectionMenu {
         @{Id=3; Name="Download & Install SQL Server Express 2025"; Selected=$SelectedTasks[3]},
         @{Id=4; Name="Download & Install SQL Server Management Studio 21"; Selected=$SelectedTasks[4]},
         @{Id=5; Name="Configure SQL Server Network Protocols"; Selected=$SelectedTasks[5]},
-        @{Id=6; Name="Install/Update Eclipse DMS 2037.25.334"; Selected=$SelectedTasks[6]},
+        @{Id=6; Name="Install/Update Eclipse DMS 2037.26.22"; Selected=$SelectedTasks[6]},
         @{Id=8; Name="Add Ultimate Domains to Trusted Sites"; Selected=$SelectedTasks[8]},
         @{Id=11; Name="Install Microsoft IIS Server + Dependencies"; Selected=$SelectedTasks[11]},
         @{Id=12; Name="Download IIS URL Rewrite Module"; Selected=$SelectedTasks[12]},
@@ -1281,8 +1284,8 @@ function Execute-Task6 {
             Write-Host "Created: $targetDir" -ForegroundColor Green
         }
         
-        $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-25-344.msi"
-        $installerPath = Join-Path $targetDir "Eclipse2037-25-344.msi"
+        $installerUrl = $EclipseDmsUrl
+        $installerPath = Join-Path $targetDir (Split-Path $EclipseDmsUrl -Leaf)
         
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
@@ -4193,19 +4196,19 @@ net start $serviceName
             '6' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Install/Update Eclipse DMS 2037.25.334" -ForegroundColor Yellow
+                Write-Host "   Install/Update Eclipse DMS" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Program Updates"
                 if (!(Test-Path $targetDir)) {
                     New-Item -Path $targetDir -ItemType Directory | Out-Null
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
-                $installerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-25-344.msi"
-                $installerPath = Join-Path $targetDir "Eclipse2037-25-344.msi"
+                $installerUrl = $EclipseDmsUrl
+                $installerPath = Join-Path $targetDir (Split-Path $EclipseDmsUrl -Leaf)
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
-                    Write-Host "Downloading Eclipse DMS 2037.25.334 installer..." -ForegroundColor Yellow
+                    Write-Host "Downloading Eclipse DMS installer..." -ForegroundColor Yellow
                     try {
                         $webClient = New-Object System.Net.WebClient
                         $webClient.DownloadFile($installerUrl, $installerPath)
@@ -4218,11 +4221,11 @@ net start $serviceName
                         continue
                     }
                 }
-                Write-Host "Installing Eclipse DMS 2037.25.334 (this may take a few minutes)..." -ForegroundColor Cyan
+                Write-Host "Installing Eclipse DMS (this may take a few minutes)..." -ForegroundColor Cyan
                 try {
                     $process = Start-Process -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList "/i `"$installerPath`" /passive" -Verb RunAs -Wait -PassThru
                     if ($process.ExitCode -eq 0) {
-                        Write-Host "Eclipse DMS 2032.25.290 installation completed successfully!" -ForegroundColor Green
+                        Write-Host "Eclipse DMS installation completed successfully!" -ForegroundColor Green
                     } else {
                         Write-Host "Installation failed with exit code: $($process.ExitCode)" -ForegroundColor Red
                     }
