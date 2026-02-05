@@ -4,7 +4,7 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.1.8"
+$ScriptVersion = "2.2.0"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS 2037.26.22
@@ -603,9 +603,26 @@ function Execute-Task3 {
             Write-Log "Downloading SQL Server Express 2025 ZIP file (this may take a few minutes)..." -ForegroundColor Yellow
             Write-Log "  Source URL: $zipUrl" -ForegroundColor Gray
             Write-Log "  Destination: $zipPath" -ForegroundColor Gray
-            $webClient = New-Object System.Net.WebClient
-            $webClient.DownloadFile($zipUrl, $zipPath)
-            $webClient.Dispose()
+            # Ensure TLS 1.2 is used (required by many HTTPS servers; default on some Windows is TLS 1.0)
+            $prevProtocol = [Net.ServicePointManager]::SecurityProtocol
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            } catch {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            }
+            try {
+                $webClient = New-Object System.Net.WebClient
+                $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PowerShell-EclipseSwissArmyKnife")
+                $webClient.DownloadFile($zipUrl, $zipPath)
+                $webClient.Dispose()
+            } catch {
+                [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
+                Write-Log "Download failed: $($_.Exception.Message)" -ForegroundColor Red
+                if ($_.Exception.InnerException) { Write-Log "  Inner: $($_.Exception.InnerException.Message)" -ForegroundColor Red }
+                Write-Log "  If you see 'SSL/TLS secure channel', the server requires TLS 1.2; the script has enabled it. Check proxy/firewall or try from another network." -ForegroundColor Yellow
+                throw
+            }
+            [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
             $fileSize = (Get-Item $zipPath).Length / 1MB
             Write-Log "Download complete: $zipPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
         }
@@ -1273,7 +1290,7 @@ function Execute-Task6 {
     )
     
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Task 6: Install/Update Eclipse DMS 2037.25.334" -ForegroundColor Yellow
+    Write-Host "   Task 6: Install/Update Eclipse DMS" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -1290,18 +1307,18 @@ function Execute-Task6 {
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Host "Downloading Eclipse DMS 2037.25.334 installer..." -ForegroundColor Yellow
+            Write-Host "Downloading Eclipse DMS installer..." -ForegroundColor Yellow
             $webClient = New-Object System.Net.WebClient
             $webClient.DownloadFile($installerUrl, $installerPath)
             $webClient.Dispose()
             Write-Host "Download complete: $installerPath" -ForegroundColor Green
         }
         
-        Write-Host "Installing Eclipse DMS 2037.25.334 (this may take a few minutes)..." -ForegroundColor Cyan
+        Write-Host "Installing Eclipse DMS (this may take a few minutes)..." -ForegroundColor Cyan
         $process = Start-Process -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
-            Write-Host "Eclipse DMS 2037.25.334 installation completed successfully!" -ForegroundColor Green
+            Write-Host "Eclipse DMS installation completed successfully!" -ForegroundColor Green
             return $true
         } else {
             Write-Host "Installation failed with exit code: $($process.ExitCode)" -ForegroundColor Red
@@ -3981,17 +3998,27 @@ net start $serviceName
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
                     Write-Host "Downloading SQL Server Express 2025 installer (700MB - this may take a few minutes)..." -ForegroundColor Yellow
+                    $prevProtocol = [Net.ServicePointManager]::SecurityProtocol
+                    try {
+                        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+                    } catch {
+                        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                    }
                     try {
                         $webClient = New-Object System.Net.WebClient
+                        $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PowerShell-EclipseSwissArmyKnife")
                         $webClient.DownloadFile($installerUrl, $installerPath)
                         $webClient.Dispose()
                         Write-Host "Download complete: $installerPath" -ForegroundColor Green
                     } catch {
+                        [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
                         Write-Host "Download failed: $($_.Exception.Message)" -ForegroundColor Red
+                        if ($_.Exception.InnerException) { Write-Host "  Inner: $($_.Exception.InnerException.Message)" -ForegroundColor Red }
                         Write-Host ""
                         Read-Host "Press Enter to continue back to the main menu"
                         continue
                     }
+                    [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
                 }
                 # Launch the installer directly
                 Write-Host "Launching SQL Server Express 2025 installer..." -ForegroundColor Cyan
