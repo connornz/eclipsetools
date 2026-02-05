@@ -1,4 +1,4 @@
-﻿# PowerShell script for Eclipse Swiss Army Knife
+# PowerShell script for Eclipse Swiss Army Knife
 # This script will provide a menu to perform the main actions described in the README
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
@@ -1716,9 +1716,26 @@ function Execute-Task14 {
             Write-Log "Downloading .NET Framework 4.8..." -ForegroundColor Yellow
             Write-Log "  Source URL: $installerUrl" -ForegroundColor Gray
             Write-Log "  Destination: $installerPath" -ForegroundColor Gray
-            $webClient = New-Object System.Net.WebClient
-            $webClient.DownloadFile($installerUrl, $installerPath)
-            $webClient.Dispose()
+            # Ensure TLS 1.2 is used (required by many HTTPS servers; default on some Windows is TLS 1.0)
+            $prevProtocol = [Net.ServicePointManager]::SecurityProtocol
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            } catch {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            }
+            try {
+                $webClient = New-Object System.Net.WebClient
+                $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PowerShell-EclipseSwissArmyKnife")
+                $webClient.DownloadFile($installerUrl, $installerPath)
+                $webClient.Dispose()
+            } catch {
+                [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
+                Write-Log "Download failed: $($_.Exception.Message)" -ForegroundColor Red
+                if ($_.Exception.InnerException) { Write-Log "  Inner: $($_.Exception.InnerException.Message)" -ForegroundColor Red }
+                Write-Log "  If you see 'SSL/TLS secure channel', the server requires TLS 1.2; the script has enabled it. Check proxy/firewall or try from another network." -ForegroundColor Yellow
+                throw
+            }
+            [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
             $fileSize = (Get-Item $installerPath).Length / 1MB
             Write-Log "Download complete: $installerPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
         }
