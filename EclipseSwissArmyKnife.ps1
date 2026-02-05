@@ -1,26 +1,31 @@
-# PowerShell script for Eclipse Swiss Army Knife
+﻿# PowerShell script for Eclipse Swiss Army Knife
 # This script will provide a menu to perform the main actions described in the README
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.2.0"
+$ScriptVersion = "2.8.1"
 
 # Download URLs - Update these when new versions are released
-# Option 6: Eclipse DMS 2037.26.22
-$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-26-22.msi"
+# Option 6: Eclipse DMS (version derived from URL filename)
+$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-26-35.msi"
+$EclipseDmsVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)) -replace '\.msi$','' -replace '^Eclipse','' -replace '-','.').Trim()
 
-# Option 15: Eclipse Update Service 1.52
+# Option 15: Eclipse Update Service (version derived from URL filename)
 $EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseUpdateService/Eclipse%20Update%20Service%201.52.exe"
+$EclipseUpdateServiceVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseUpdateServiceUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
-# Option 16: Eclipse Online Chrome 3.8.21
+# Option 16: Eclipse Online Chrome (version derived from URL filename)
 $EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%203.8.21.msi"
+$EclipseOnlineChromeVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineChromeUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
-# Option 17: Eclipse Online Server
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.130.0.exe"
+# Option 17: Eclipse Online Server (version derived from URL filename)
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.0.133.0.exe"
+$EclipseOnlineServerVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineServerUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
-# Option 20: Eclipse Smart Hub 12.0.101.0
+# Option 20: Eclipse Smart Hub (version derived from URL filename)
 $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.4.1.0.exe"
+$EclipseSmartHubVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseSmartHubUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 function Show-Menu {
     Clear-Host
@@ -32,7 +37,7 @@ function Show-Menu {
     Write-Host "[3]  " -NoNewline; Write-Host "Download SQL Server Express 2025" -ForegroundColor Green
     Write-Host "[4]  " -NoNewline; Write-Host "Download SQL Server Management Studio 21" -ForegroundColor Green
     Write-Host "[5]  " -NoNewline; Write-Host "Configure SQL Server Network Protocols" -ForegroundColor Green
-    Write-Host "[6]  " -NoNewline; Write-Host "Install/Update Eclipse DMS 2037.26.22" -ForegroundColor Green
+    Write-Host "[6]  " -NoNewline; Write-Host "Install/Update Eclipse DMS $EclipseDmsVersion" -ForegroundColor Green
     Write-Host "[7]  " -NoNewline; Write-Host "Extract Eclipse Database Registry Keys" -ForegroundColor Green
     Write-Host "[8]  " -NoNewline; Write-Host "Add Ultimate Domains to Trusted Sites" -ForegroundColor Green
     Write-Host ""
@@ -45,12 +50,12 @@ function Show-Menu {
     Write-Host "[12] " -NoNewline; Write-Host "Download IIS URL Rewrite Module (Install IIS First)" -ForegroundColor Yellow
     Write-Host "[13] " -NoNewline; Write-Host "Download .NET 8 Core + ASP 8 + Runtime 8" -ForegroundColor Yellow
     Write-Host "[14] " -NoNewline; Write-Host "Download .NET Framework 4.8 (System Restart Needed)" -ForegroundColor Yellow
-    Write-Host "[15] " -NoNewline; Write-Host "Download Eclipse Update Service 1.52" -ForegroundColor Yellow
-    Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome 3.8.21" -ForegroundColor Yellow
-    Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server 12.0.120.0" -ForegroundColor Yellow
+    Write-Host "[15] " -NoNewline; Write-Host "Download Eclipse Update Service $EclipseUpdateServiceVersion" -ForegroundColor Yellow
+    Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome $EclipseOnlineChromeVersion" -ForegroundColor Yellow
+    Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server $EclipseOnlineServerVersion" -ForegroundColor Yellow
     Write-Host "[18] " -NoNewline; Write-Host "Update IIS Application Pools" -ForegroundColor Yellow
     Write-Host "[19] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
-    Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub" -ForegroundColor Yellow
+    Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub $EclipseSmartHubVersion" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
 }
@@ -349,16 +354,16 @@ function Show-TaskSelectionMenu {
         @{Id=3; Name="Download & Install SQL Server Express 2025"; Selected=$SelectedTasks[3]},
         @{Id=4; Name="Download & Install SQL Server Management Studio 21"; Selected=$SelectedTasks[4]},
         @{Id=5; Name="Configure SQL Server Network Protocols"; Selected=$SelectedTasks[5]},
-        @{Id=6; Name="Install/Update Eclipse DMS 2037.26.22"; Selected=$SelectedTasks[6]},
+        @{Id=6; Name="Install/Update Eclipse DMS $EclipseDmsVersion"; Selected=$SelectedTasks[6]},
         @{Id=8; Name="Add Ultimate Domains to Trusted Sites"; Selected=$SelectedTasks[8]},
         @{Id=11; Name="Install Microsoft IIS Server + Dependencies"; Selected=$SelectedTasks[11]},
         @{Id=12; Name="Download IIS URL Rewrite Module"; Selected=$SelectedTasks[12]},
         @{Id=13; Name="Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22"; Selected=$SelectedTasks[13]},
         @{Id=14; Name="Download .NET Framework 4.8"; Selected=$SelectedTasks[14]},
-        @{Id=15; Name="Download Eclipse Update Service 1.52"; Selected=$SelectedTasks[15]},
-        @{Id=17; Name="Install Eclipse Online Server 12.0.120.0 & Create IIS Binding"; Selected=$SelectedTasks[17]},
+        @{Id=15; Name="Download Eclipse Update Service $EclipseUpdateServiceVersion"; Selected=$SelectedTasks[15]},
+        @{Id=17; Name="Install Eclipse Online Server $EclipseOnlineServerVersion & Create IIS Binding"; Selected=$SelectedTasks[17]},
         @{Id=18; Name="Update IIS Application Pools"; Selected=$SelectedTasks[18]},
-        @{Id=19; Name="Install Eclipse Smart Hub 12.0.101.0"; Selected=$SelectedTasks[19]},
+        @{Id=19; Name="Install Eclipse Smart Hub $EclipseSmartHubVersion"; Selected=$SelectedTasks[19]},
         @{Id=20; Name="Install Win-ACMEv2"; Selected=$SelectedTasks[20]}
     )
     
@@ -1302,7 +1307,7 @@ function Execute-Task6 {
         }
         
         $installerUrl = $EclipseDmsUrl
-        $installerPath = Join-Path $targetDir (Split-Path $EclipseDmsUrl -Leaf)
+        $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)))
         
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
@@ -1815,7 +1820,7 @@ function Execute-Task15 {
     )
     
     Write-Log "===============================================" -ForegroundColor Cyan
-    Write-Log "   Task 15: Download & Install Eclipse Update Service 1.52" -ForegroundColor Yellow
+    Write-Log "   Task 15: Download & Install Eclipse Update Service $EclipseUpdateServiceVersion" -ForegroundColor Yellow
     Write-Log "===============================================" -ForegroundColor Cyan
     Write-Log ""
     
@@ -1830,14 +1835,14 @@ function Execute-Task15 {
         
         # Download installer directly from the server
         $installerUrl = $EclipseUpdateServiceUrl
-        $installerPath = Join-Path $targetDir "Eclipse Update Service 1.52.exe"
+        $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
         # Ensure we have an absolute path
         $installerPath = [System.IO.Path]::GetFullPath($installerPath)
         
         if (Test-Path $installerPath) {
             Write-Log "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Log "Downloading Eclipse Update Service 1.52 installer..." -ForegroundColor Yellow
+            Write-Log "Downloading Eclipse Update Service $EclipseUpdateServiceVersion installer..." -ForegroundColor Yellow
             Write-Log "  Source URL: $installerUrl" -ForegroundColor Gray
             Write-Log "  Destination: $installerPath" -ForegroundColor Gray
             try {
@@ -1866,7 +1871,7 @@ function Execute-Task15 {
         
         # Install Eclipse Update Service silently with Client ID
         Write-Log ""
-        Write-Log "Installing Eclipse Update Service 1.52 (this may take a few minutes)..." -ForegroundColor Cyan
+        Write-Log "Installing Eclipse Update Service $EclipseUpdateServiceVersion (this may take a few minutes)..." -ForegroundColor Cyan
         Write-Log "Running silent installation with Client ID: $EclipseClientId" -ForegroundColor Yellow
         Write-Log "  Username: $EclipseClientId" -ForegroundColor Gray
         Write-Log "  Company/Organization: $EclipseClientId" -ForegroundColor Gray
@@ -2123,7 +2128,7 @@ function Execute-Task15 {
             
             # Check exit code
             if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) {
-                Write-Log "Eclipse Update Service 1.52 installation completed successfully!" -ForegroundColor Green
+                Write-Log "Eclipse Update Service $EclipseUpdateServiceVersion installation completed successfully!" -ForegroundColor Green
                 if ($process.ExitCode -eq 3010) {
                     Write-Log "Note: System restart may be required." -ForegroundColor Yellow
                 }
@@ -2384,7 +2389,7 @@ function Execute-Task16 {
     )
     
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Task 16: Download Eclipse Online Chrome 3.8.21" -ForegroundColor Yellow
+    Write-Host "   Task 16: Download Eclipse Online Chrome $EclipseOnlineChromeVersion" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -2395,19 +2400,19 @@ function Execute-Task16 {
         }
         
         $installerUrl = $EclipseOnlineChromeUrl
-        $installerPath = Join-Path $targetDir "EclipseOnlineChrome3.8.21.exe"
+        $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
         
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Host "Downloading Eclipse Online Chrome 3.8.21..." -ForegroundColor Yellow
+            Write-Host "Downloading Eclipse Online Chrome $EclipseOnlineChromeVersion..." -ForegroundColor Yellow
             $webClient = New-Object System.Net.WebClient
             $webClient.DownloadFile($installerUrl, $installerPath)
             $webClient.Dispose()
             Write-Host "Download complete: $installerPath" -ForegroundColor Green
         }
         
-        Write-Host "Eclipse Online Chrome 3.8.21 downloaded successfully!" -ForegroundColor Cyan
+        Write-Host "Eclipse Online Chrome $EclipseOnlineChromeVersion downloaded successfully!" -ForegroundColor Cyan
         return $true
     } catch {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -2435,12 +2440,12 @@ function Execute-Task17 {
         }
         
         $installerUrl = $EclipseOnlineServerUrl
-        $installerPath = Join-Path $targetDir "EclipseOnlineServer12.0.120.0.exe"
+        $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
         
         if (Test-Path $installerPath) {
             Write-Log "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Log "Downloading Eclipse Online Server 12.0.120.0..." -ForegroundColor Yellow
+            Write-Log "Downloading Eclipse Online Server $EclipseOnlineServerVersion..." -ForegroundColor Yellow
             Write-Log "  Source URL: $installerUrl" -ForegroundColor Gray
             Write-Log "  Destination: $installerPath" -ForegroundColor Gray
             $webClient = New-Object System.Net.WebClient
@@ -2450,12 +2455,12 @@ function Execute-Task17 {
             Write-Log "Download complete: $installerPath ($([math]::Round($fileSize, 2)) MB)" -ForegroundColor Green
         }
         
-        Write-Log "Eclipse Online Server 12.0.120.0 downloaded successfully!" -ForegroundColor Cyan
+        Write-Log "Eclipse Online Server $EclipseOnlineServerVersion downloaded successfully!" -ForegroundColor Cyan
         Write-Log ""
         
         # Install Eclipse Online Server silently to C:\inetpub\Eclipse
         $installPath = "C:\inetpub\Eclipse"
-        Write-Log "Installing Eclipse Online Server 12.0.120.0..." -ForegroundColor Yellow
+        Write-Log "Installing Eclipse Online Server $EclipseOnlineServerVersion..." -ForegroundColor Yellow
         Write-Log "  Installation path: $installPath" -ForegroundColor Gray
         
         # Check if already installed
@@ -2539,7 +2544,7 @@ function Execute-Task17 {
         }
         
         Write-Log ""
-        Write-Log "Eclipse Online Server 12.0.120.0 installation completed!" -ForegroundColor Cyan
+        Write-Log "Eclipse Online Server $EclipseOnlineServerVersion installation completed!" -ForegroundColor Cyan
         return $true
     } catch {
         Write-Log "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -2964,7 +2969,7 @@ function Execute-Task20 {
     )
     
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Task 19: Install Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
+    Write-Host "   Task 19: Install Eclipse Smart Hub $EclipseSmartHubVersion" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -2976,13 +2981,13 @@ function Execute-Task20 {
         
         # Download installer
         $installerUrl = $EclipseSmartHubUrl
-        $installerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
+        $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
         
         # Check if installer exists
         if (Test-Path $installerPath) {
             Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
         } else {
-            Write-Host "Downloading Eclipse Smart Hub 12.0.101.0..." -ForegroundColor Yellow
+            Write-Host "Downloading Eclipse Smart Hub $EclipseSmartHubVersion..." -ForegroundColor Yellow
             try {
                 $webClient = New-Object System.Net.WebClient
                 $webClient.DownloadFile($installerUrl, $installerPath)
@@ -3006,11 +3011,11 @@ function Execute-Task20 {
             Write-Host "  Services: $($smartHubServices.Count) found" -ForegroundColor Gray
             Write-Host "  Files: $($existingFiles.Count) items" -ForegroundColor Gray
             Write-Host ""
-            Write-Host "Eclipse Smart Hub 12.0.101.0 installation completed!" -ForegroundColor Cyan
+            Write-Host "Eclipse Smart Hub $EclipseSmartHubVersion installation completed!" -ForegroundColor Cyan
             return $true
         } else {
             # Install Eclipse Smart Hub silently
-            Write-Host "Installing Eclipse Smart Hub 12.0.101.0 silently..." -ForegroundColor Yellow
+            Write-Host "Installing Eclipse Smart Hub $EclipseSmartHubVersion silently..." -ForegroundColor Yellow
             Write-Host "  Using InstallShield silent mode: /S" -ForegroundColor Gray
             Write-Host "  Installing to default location with default settings" -ForegroundColor Gray
             
@@ -3071,7 +3076,7 @@ function Execute-Task20 {
                     $duration = ($endTime - $startTime).TotalSeconds
                     Write-Host "  Installation duration: $([math]::Round($duration, 1)) seconds" -ForegroundColor Gray
                     Write-Host ""
-                    Write-Host "Eclipse Smart Hub 12.0.101.0 installation completed!" -ForegroundColor Cyan
+                    Write-Host "Eclipse Smart Hub $EclipseSmartHubVersion installation completed!" -ForegroundColor Cyan
                     return $true
                 }
                 
@@ -3130,7 +3135,7 @@ function Execute-Task20 {
         }
         
         Write-Host ""
-        Write-Host "Eclipse Smart Hub 12.0.101.0 installation completed!" -ForegroundColor Cyan
+        Write-Host "Eclipse Smart Hub $EclipseSmartHubVersion installation completed!" -ForegroundColor Cyan
         return $true
     } catch {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -3176,16 +3181,16 @@ function Execute-Tasks {
         3 = "Download & Install SQL Server Express 2025"
         4 = "Download & Install SQL Server Management Studio 21"
         5 = "Configure SQL Server Network Protocols"
-        6 = "Install/Update Eclipse DMS 2037.25.334"
+        6 = "Install/Update Eclipse DMS"
         8 = "Add Ultimate Domains to Trusted Sites"
         11 = "Install Microsoft IIS Server + Dependencies"
         12 = "Download & Install IIS URL Rewrite Module"
         13 = "Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22"
         14 = "Download & Install .NET Framework 4.8"
-        15 = "Download & Install Eclipse Update Service 1.52"
-        17 = "Install Eclipse Online Server"
+        15 = "Download & Install Eclipse Update Service $EclipseUpdateServiceVersion"
+        17 = "Install Eclipse Online Server $EclipseOnlineServerVersion"
         18 = "Create IIS Application Pools & Site Binding"
-        19 = "Install Eclipse Smart Hub 12.0.101.0"
+        19 = "Install Eclipse Smart Hub $EclipseSmartHubVersion"
         20 = "Install Win-ACMEv2"
     }
     
@@ -4243,7 +4248,7 @@ net start $serviceName
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseDmsUrl
-                $installerPath = Join-Path $targetDir (Split-Path $EclipseDmsUrl -Leaf)
+                $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)))
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
@@ -4849,7 +4854,7 @@ net start $serviceName
             '15' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Download Eclipse Update Service 1.52" -ForegroundColor Yellow
+                Write-Host "   Download Eclipse Update Service $EclipseUpdateServiceVersion" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Dependencies"
                 if (!(Test-Path $targetDir)) {
@@ -4857,8 +4862,8 @@ net start $serviceName
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseUpdateServiceUrl
-                $installerPath = Join-Path $targetDir "Eclipse Update Service 1.52.exe"
-                Write-Host "Downloading Eclipse Update Service 1.52 installer..." -ForegroundColor Yellow
+                $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
+                Write-Host "Downloading Eclipse Update Service $EclipseUpdateServiceVersion installer..." -ForegroundColor Yellow
                 try {
                     $webClient = New-Object System.Net.WebClient
                     $webClient.DownloadFile($installerUrl, $installerPath)
@@ -4866,7 +4871,7 @@ net start $serviceName
                     Write-Host "Download complete: $installerPath" -ForegroundColor Green
                     Write-Host "Launching installer..." -ForegroundColor Cyan
                     Start-Process -FilePath $installerPath -Verb RunAs
-                    Write-Host "Eclipse Update Service 1.52 installation started!" -ForegroundColor Green
+                    Write-Host "Eclipse Update Service $EclipseUpdateServiceVersion installation started!" -ForegroundColor Green
                 } catch {
                     Write-Host "Download failed: $($_.Exception.Message)" -ForegroundColor Red
                 }
@@ -4876,7 +4881,7 @@ net start $serviceName
             '16' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Download Eclipse Online Chrome 3.8.21" -ForegroundColor Yellow
+                Write-Host "   Download Eclipse Online Chrome $EclipseOnlineChromeVersion" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Dependencies"
                 if (!(Test-Path $targetDir)) {
@@ -4884,8 +4889,8 @@ net start $serviceName
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseOnlineChromeUrl
-                $installerPath = Join-Path $targetDir "EclipseOnline Chrome 3.8.21.msi"
-                Write-Host "Downloading Eclipse Online Chrome 3.8.21 installer..." -ForegroundColor Yellow
+                $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
+                Write-Host "Downloading Eclipse Online Chrome $EclipseOnlineChromeVersion installer..." -ForegroundColor Yellow
                 try {
                     $webClient = New-Object System.Net.WebClient
                     $webClient.DownloadFile($installerUrl, $installerPath)
@@ -4893,7 +4898,7 @@ net start $serviceName
                     Write-Host "Download complete: $installerPath" -ForegroundColor Green
                     Write-Host "Launching installer..." -ForegroundColor Cyan
                     Start-Process -FilePath "$env:SystemRoot\System32\msiexec.exe" -ArgumentList "/i `"$installerPath`"" -Verb RunAs
-                    Write-Host "Eclipse Online Chrome 3.8.21 installation started!" -ForegroundColor Green
+                    Write-Host "Eclipse Online Chrome $EclipseOnlineChromeVersion installation started!" -ForegroundColor Green
                 } catch {
                     Write-Host "Download failed: $($_.Exception.Message)" -ForegroundColor Red
                 }
@@ -4903,7 +4908,7 @@ net start $serviceName
             '17' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Download Eclipse Online Server (Aura) 12.0.120.0" -ForegroundColor Yellow
+                Write-Host "   Download Eclipse Online Server (Aura)" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Dependencies"
                 if (!(Test-Path $targetDir)) {
@@ -4911,11 +4916,11 @@ net start $serviceName
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseOnlineServerUrl
-                $installerPath = Join-Path $targetDir "EclipseOnline Server 12.0.120.0.exe"
+                $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
-                    Write-Host "Downloading Eclipse Online Server 12.0.120.0 installer..." -ForegroundColor Yellow
+                    Write-Host "Downloading Eclipse Online Server $EclipseOnlineServerVersion installer..." -ForegroundColor Yellow
                     try {
                         $webClient = New-Object System.Net.WebClient
                         $webClient.DownloadFile($installerUrl, $installerPath)
@@ -4930,7 +4935,7 @@ net start $serviceName
                 }
                 Write-Host "Launching installer..." -ForegroundColor Cyan
                 Start-Process -FilePath $installerPath -Verb RunAs
-                Write-Host "Eclipse Online Server 12.0.120.0 installation started!" -ForegroundColor Green
+                Write-Host "Eclipse Online Server $EclipseOnlineServerVersion installation started!" -ForegroundColor Green
                 Write-Host ""
                 Read-Host "Press Enter to continue back to the main menu"
             }
@@ -5040,7 +5045,7 @@ net start $serviceName
             '20' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Download Eclipse Smart Hub 12.0.101.0" -ForegroundColor Yellow
+                Write-Host "   Download Eclipse Smart Hub $EclipseSmartHubVersion" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 $targetDir = "C:\Eclipse Install\Dependencies"
                 if (!(Test-Path $targetDir)) {
@@ -5048,11 +5053,11 @@ net start $serviceName
                     Write-Host "Created: $targetDir" -ForegroundColor Green
                 }
                 $installerUrl = $EclipseSmartHubUrl
-                $installerPath = Join-Path $targetDir "EclipseSmartHubInstaller 12.0.101.0.exe"
+                $installerPath = Join-Path $targetDir ([System.Net.WebUtility]::UrlDecode((Split-Path $installerUrl -Leaf)))
                 if (Test-Path $installerPath) {
                     Write-Host "Installer already downloaded: $installerPath" -ForegroundColor Green
                 } else {
-                    Write-Host "Downloading Eclipse Smart Hub 12.0.101.0 installer..." -ForegroundColor Yellow
+                    Write-Host "Downloading Eclipse Smart Hub $EclipseSmartHubVersion installer..." -ForegroundColor Yellow
                     try {
                         $webClient = New-Object System.Net.WebClient
                         $webClient.DownloadFile($installerUrl, $installerPath)
@@ -5067,7 +5072,7 @@ net start $serviceName
                 }
                 Write-Host "Launching installer..." -ForegroundColor Cyan
                 Start-Process -FilePath $installerPath -Verb RunAs
-                Write-Host "Eclipse Smart Hub 12.0.101.0 installation started!" -ForegroundColor Green
+                Write-Host "Eclipse Smart Hub $EclipseSmartHubVersion installation started!" -ForegroundColor Green
                 Write-Host ""
                 Read-Host "Press Enter to continue back to the main menu"
             }
