@@ -7,4 +7,7 @@
 # Allow the .gitignore file itself to be tracked
 !.gitignore
 
+# Local Copilot notes (do not commit)
+.copilot
+
 
