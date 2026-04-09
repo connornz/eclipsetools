@@ -10,4 +10,8 @@
 # Local Copilot notes (do not commit)
 .copilot
 
+# VINLink credentials (sensitive - never commit)
+**/vinlink_credentials.xml
+**/VINLink/
+
 

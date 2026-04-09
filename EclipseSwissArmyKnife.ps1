@@ -1,14 +1,14 @@
-﻿# PowerShell script for Eclipse Swiss Army Knife
+# PowerShell script for Eclipse Swiss Army Knife
 # This script will provide a menu to perform the main actions described in the README
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.8.2"
+$ScriptVersion = "2.8.3"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS (version derived from URL filename)
-$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2037-26-35.msi"
+$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2041-26-90.msi"
 $EclipseDmsVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)) -replace '\.msi$','' -replace '^Eclipse','' -replace '-','.').Trim()
 
 # Option 15: Eclipse Update Service (version derived from URL filename)
@@ -20,7 +20,7 @@ $EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseO
 $EclipseOnlineChromeVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineChromeUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 17: Eclipse Online Server (version derived from URL filename)
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.1.11.0.exe"
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.12.17.0.exe"
 $EclipseOnlineServerVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineServerUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 20: Eclipse Smart Hub (version derived from URL filename)
@@ -58,6 +58,7 @@ function Show-Menu {
     Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub $EclipseSmartHubVersion" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
+    Write-Host "[V]  " -NoNewline; Write-Host "VINLink Data Update (Scheduled Task)" -ForegroundColor Cyan
 }
 
 # PowerShell script for Eclipse Swiss Army Knife v$ScriptVersion
@@ -215,6 +216,28 @@ function Install-NSSM {
         
         return $false
     }
+}
+
+# Function to find sqlcmd.exe (required for VINLink database queries)
+function Test-SqlCmdAvailable {
+    # Search common SQL Server installation paths
+    $searchPaths = @(
+        "C:\Program Files\Microsoft SQL Server\*\Tools\Binn\sqlcmd.exe",
+        "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\*\Tools\Binn\sqlcmd.exe",
+        "C:\Program Files (x86)\Microsoft SQL Server\*\Tools\Binn\sqlcmd.exe"
+    )
+    foreach ($pattern in $searchPaths) {
+        $found = Get-Item -Path $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found -and (Test-Path $found.FullName)) {
+            return $found.FullName
+        }
+    }
+    # Fallback to PATH
+    $cmd = Get-Command sqlcmd -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $cmd.Source
+    }
+    return $null
 }
 
 function Get-Configuration {
@@ -3496,10 +3519,299 @@ function Start-UnattendedMode {
     Write-SummaryAndLog -Config $config -SelectedTasks $result
 }
 
+# VINLink Data Update - Install scheduled task that checks FTP every ~2 months
+function Start-VinLinkSetup {
+    Clear-Host
+    Write-Host "===============================================" -ForegroundColor Cyan
+    Write-Host "   VINLink Data Update (Scheduled Task Setup)" -ForegroundColor Yellow
+    Write-Host "===============================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "This will install a script to fetch the latest version of VINLink for the customer automatically every 2 months." -ForegroundColor Cyan
+    Write-Host ""
+    Read-Host "Please press Enter to continue"
+    Write-Host ""
+    
+    # 1. Check sqlcmd availability
+    $sqlcmdPath = Test-SqlCmdAvailable
+    if (-not $sqlcmdPath) {
+        Write-Host "sqlcmd not found. VINLink requires sqlcmd to query the database." -ForegroundColor Red
+        Write-Host "Please install SQL Server Management Studio or SQL Server Command Line Utilities." -ForegroundColor Yellow
+        Write-Host "Download: https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-download-install" -ForegroundColor Gray
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    Write-Host "sqlcmd found: $sqlcmdPath" -ForegroundColor Green
+    Write-Host ""
+    
+    # 2. Query available databases (localhost, sa, UBSubs123) - exclude system databases
+    $dbHost = "localhost"
+    $dbUser = "sa"
+    $dbPassword = "UBSubs123"
+    Write-Host "Querying available databases on $dbHost..." -ForegroundColor Yellow
+    $dbListQuery = "SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name"
+    $dbListResult = & $sqlcmdPath -S $dbHost -d "master" -U $dbUser -P $dbPassword -Q $dbListQuery -h -1 -W 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to connect to SQL Server: $dbListResult" -ForegroundColor Red
+        Write-Host "Ensure SQL Server is running and credentials (sa/UBSubs123) are correct." -ForegroundColor Yellow
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    $databases = @($dbListResult | Where-Object { $_.Trim() } | ForEach-Object { $_.Trim() })
+    
+    if (-not $databases -or $databases.Count -eq 0) {
+        Write-Host "No user databases found on $dbHost (system databases excluded)." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    
+    Write-Host ""
+    Write-Host "Available databases:" -ForegroundColor Yellow
+    Write-Host "-------------------" -ForegroundColor DarkGray
+    $i = 1
+    foreach ($db in $databases) {
+        Write-Host "  [$i] $db" -ForegroundColor Green
+        $i++
+    }
+    Write-Host ""
+    $selection = Read-Host "Select database number (1-$($databases.Count))"
+    $dbIndex = 0
+    [int]::TryParse($selection.Trim(), [ref]$dbIndex) | Out-Null
+    if ($dbIndex -lt 1 -or $dbIndex -gt $databases.Count) {
+        Write-Host "Invalid selection. Returning to main menu." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    $dbName = $databases[$dbIndex - 1]
+    Write-Host "Selected database: $dbName" -ForegroundColor Green
+    Write-Host ""
+    
+    # Convert password to SecureString for credential storage
+    $dbPasswordSecure = ConvertTo-SecureString $dbPassword -AsPlainText -Force
+    
+    # 3. Test database connection
+    Write-Host "Testing database connection..." -ForegroundColor Yellow
+    $testResult = & $sqlcmdPath -S $dbHost -d $dbName -U $dbUser -P $dbPassword -Q "SELECT 1" -h -1 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Database connection failed: $testResult" -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    Write-Host "Database connection successful." -ForegroundColor Green
+    Write-Host ""
+    
+    # 4. Query VINLINK_DATAFILE_PATH
+    Write-Host "Querying VINLINK_DATAFILE_PATH from system_params..." -ForegroundColor Yellow
+    $queryPath = "SELECT param_value FROM system_params WHERE param_name = 'VINLINK_DATAFILE_PATH'"
+    $currentPathResult = & $sqlcmdPath -S $dbHost -d $dbName -U $dbUser -P $dbPassword -Q $queryPath -h -1 -W 2>&1
+    $currentDataPath = ($currentPathResult | Where-Object { $_.Trim() }) | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($currentDataPath)) {
+        Write-Host "VINLINK_DATAFILE_PATH not found in system_params. Ensure the database has the VINLink parameter." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    $currentDataPath = $currentDataPath.Trim()
+    Write-Host "Current path: $currentDataPath" -ForegroundColor Green
+    $targetDir = $([System.IO.Path]::GetDirectoryName($currentDataPath))
+    if (-not (Test-Path $targetDir)) {
+        Write-Host "Target directory does not exist: $targetDir" -ForegroundColor Red
+        Write-Host "Please create it or ensure the path in system_params is correct." -ForegroundColor Yellow
+        Write-Host ""
+        Read-Host "Press Enter to return to the main menu"
+        return
+    }
+    Write-Host ""
+    
+    # 5. Prompt for FTP credentials
+    Write-Host "FTP Credentials (ftp.infomedia.com.au)" -ForegroundColor Yellow
+    Write-Host "--------------------------------------" -ForegroundColor DarkGray
+    $ftpUser = Read-Host "FTP username"
+    Write-Host "FTP password (enter securely):" -ForegroundColor Gray
+    $ftpPasswordSecure = Read-Host -AsSecureString
+    $ftpPath = Read-Host "FTP path (default: /VINLink/KIA/)"
+    if ([string]::IsNullOrWhiteSpace($ftpPath)) { $ftpPath = "/VINLink/KIA/" }
+    if (-not $ftpPath.StartsWith("/")) { $ftpPath = "/" + $ftpPath }
+    if (-not $ftpPath.EndsWith("/")) { $ftpPath = $ftpPath + "/" }
+    Write-Host ""
+    
+    # 6. Create VINLink directory
+    $vinlinkDir = "C:\Eclipse Install\VINLink"
+    if (!(Test-Path $vinlinkDir)) {
+        New-Item -Path $vinlinkDir -ItemType Directory -Force | Out-Null
+        Write-Host "Created: $vinlinkDir" -ForegroundColor Green
+    }
+    
+    # 7. Save credentials securely (SecureString to XML - machine key, restricted permissions)
+    $credPath = Join-Path $vinlinkDir "vinlink_credentials.xml"
+    $credObject = @{
+        DbHost = $dbHost
+        DbName = $dbName
+        DbUser = $dbUser
+        DbPassword = $dbPasswordSecure
+        FtpUser = $ftpUser
+        FtpPassword = $ftpPasswordSecure
+        FtpPath = $ftpPath
+        TargetDir = $targetDir
+    }
+    $credObject | Export-Clixml -Path $credPath -Force
+    # Restrict ACL - only SYSTEM and Administrators
+    $acl = Get-Acl $credPath
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.Access | Where-Object { $_.IdentityReference -notmatch "SYSTEM|Administrators" } | ForEach-Object { $acl.RemoveAccessRule($_) | Out-Null }
+    Set-Acl $credPath $acl
+    Write-Host "Credentials saved to: $credPath" -ForegroundColor Green
+    Write-Host ""
+    
+    # 8. Create VINLink-Update.ps1 script
+    $updateScriptPath = Join-Path $vinlinkDir "VINLink-Update.ps1"
+    $updateScriptContent = @'
+# VINLink Data Update - Runs as scheduled task (every 2 months)
+# Checks FTP for newer VINLink .zip, downloads, extracts, updates system_params
+
+param(
+    [string]$SqlCmdPath = $null,
+    [string]$CredPath = "C:\Eclipse Install\VINLink\vinlink_credentials.xml"
+)
+
+$logPath = Join-Path (Split-Path $CredPath) "vinlink_update.log"
+function Write-VinLinkLog { param($Msg) $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"; Add-Content -Path $logPath -Value "[$ts] $Msg" -ErrorAction SilentlyContinue }
+
+try {
+    if (-not (Test-Path $CredPath)) { Write-VinLinkLog "ERROR: Credentials file not found: $CredPath"; exit 1 }
+    $cred = Import-Clixml $CredPath
+    $dbHost = $cred.DbHost; $dbName = $cred.DbName; $dbUser = $cred.DbUser
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cred.DbPassword))
+    $ftpUser = $cred.FtpUser
+    $ftpPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cred.FtpPassword))
+    $ftpPath = $cred.FtpPath; $targetDir = $cred.TargetDir
+
+    if (-not $SqlCmdPath) {
+        $searchPaths = @("C:\Program Files\Microsoft SQL Server\*\Tools\Binn\sqlcmd.exe", "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\*\Tools\Binn\sqlcmd.exe")
+        foreach ($p in $searchPaths) {
+            $f = Get-Item $p -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($f) { $SqlCmdPath = $f.FullName; break }
+        }
+        if (-not $SqlCmdPath) { $SqlCmdPath = (Get-Command sqlcmd -ErrorAction SilentlyContinue).Source }
+    }
+    if (-not $SqlCmdPath) { Write-VinLinkLog "ERROR: sqlcmd not found"; exit 1 }
+
+    # Ensure TLS 1.2 for FTP/HTTPS
+    $prevProtocol = [Net.ServicePointManager]::SecurityProtocol
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 }
+
+    # Query current path
+    $queryPath = "SELECT param_value FROM system_params WHERE param_name = 'VINLINK_DATAFILE_PATH'"
+    $currentPathResult = & $SqlCmdPath -S $dbHost -d $dbName -U $dbUser -P $dbPassword -Q $queryPath -h -1 -W 2>&1
+    $currentDataPath = ($currentPathResult | Where-Object { $_.Trim() }) | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($currentDataPath)) { Write-VinLinkLog "ERROR: VINLINK_DATAFILE_PATH not found"; exit 1 }
+    $currentDataPath = $currentDataPath.Trim()
+
+    # Parse date from current path (YYYYMMDD)
+    $currentDateMatch = [regex]::Match($currentDataPath, '(\d{8})')
+    $currentDate = if ($currentDateMatch.Success) { $currentDateMatch.Groups[1].Value } else { "00000000" }
+
+    # List FTP directory
+    $ftpUri = "ftp://ftp.infomedia.com.au" + $ftpPath
+    $request = [System.Net.FtpWebRequest]::Create($ftpUri)
+    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPassword)
+    $request.Method = [System.Net.WebRequestMethods+Ftp]::ListDirectory
+    $response = $request.GetResponse()
+    $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+    $ftpFiles = $reader.ReadToEnd() -split "`n" | Where-Object { $_ -match '\.zip$' }
+    $reader.Close(); $response.Close()
+
+    # Find newest zip by date in filename
+    $newestZip = $null; $newestDate = 0
+    foreach ($f in $ftpFiles) {
+        $m = [regex]::Match($f, '(\d{8})')
+        if ($m.Success) {
+            $d = [int]$m.Groups[1].Value
+            if ($d -gt $newestDate) { $newestDate = $d; $newestZip = $f.Trim() }
+        }
+    }
+
+    if (-not $newestZip -or $newestDate -le [int]$currentDate) {
+        Write-VinLinkLog "No newer file found. Current: $currentDate, Newest on FTP: $newestDate"
+        exit 0
+    }
+
+    Write-VinLinkLog "New file found: $newestZip (date: $newestDate). Downloading..."
+
+    # Download zip
+    $zipUrl = $ftpUri + $newestZip
+    $zipPath = Join-Path $env:TEMP "VINLink-$newestDate.zip"
+    $dlRequest = [System.Net.FtpWebRequest]::Create($zipUrl)
+    $dlRequest.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPassword)
+    $dlRequest.Method = [System.Net.WebRequestMethods+Ftp]::DownloadFile
+    $dlResponse = $dlRequest.GetResponse()
+    $dlStream = $dlResponse.GetResponseStream()
+    $fs = [System.IO.File]::Create($zipPath)
+    $dlStream.CopyTo($fs)
+    $fs.Close(); $dlStream.Close(); $dlResponse.Close()
+
+    # Extract to target directory
+    Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
+    Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+
+    # Find .dat file (prefer one with date in filename)
+    $datFiles = Get-ChildItem -Path $targetDir -Filter "*.dat" -Recurse -ErrorAction SilentlyContinue
+    $newDatPath = ($datFiles | Where-Object { $_.Name -match $newestDate } | Select-Object -First 1).FullName
+    if (-not $newDatPath) { $newDatPath = ($datFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName }
+
+    if ($newDatPath -and (Test-Path $newDatPath)) {
+        $updateQuery = "UPDATE system_params SET param_value = '$($newDatPath.Replace("'","''"))' WHERE param_name = 'VINLINK_DATAFILE_PATH'"
+        & $SqlCmdPath -S $dbHost -d $dbName -U $dbUser -P $dbPassword -Q $updateQuery 2>&1 | Out-Null
+        Write-VinLinkLog "Updated VINLINK_DATAFILE_PATH to: $newDatPath"
+    } else {
+        Write-VinLinkLog "WARNING: No .dat file found in extracted zip"
+    }
+
+    [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
+} catch {
+    Write-VinLinkLog "ERROR: $($_.Exception.Message)"
+    exit 1
+}
+'@
+    Set-Content -Path $updateScriptPath -Value $updateScriptContent -Encoding UTF8
+    Write-Host "Update script created: $updateScriptPath" -ForegroundColor Green
+    Write-Host ""
+    
+    # 9. Register scheduled task (every 4 weeks)
+    $taskName = "VINLink-DataUpdate"
+    $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    if ($existingTask) {
+        Write-Host "Removing existing scheduled task '$taskName'..." -ForegroundColor Yellow
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    }
+    
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$updateScriptPath`""
+    $trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 8 -DaysOfWeek Monday -At 2am
+    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "VINLink data update - checks FTP every 2 months for newer file" | Out-Null
+    
+    Write-Host "===============================================" -ForegroundColor Green
+    Write-Host "VINLink scheduled task installed successfully!" -ForegroundColor Green
+    Write-Host "===============================================" -ForegroundColor Green
+    Write-Host "Task name: $taskName" -ForegroundColor Cyan
+    Write-Host "Schedule: Every 2 months (Mondays at 2:00 AM)" -ForegroundColor Cyan
+    Write-Host "Log file: $vinlinkDir\vinlink_update.log" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Credentials are stored in: $credPath" -ForegroundColor Gray
+    Write-Host "Do not commit this file to version control." -ForegroundColor Gray
+    Write-Host ""
+    Read-Host "Press Enter to return to the main menu"
+}
+
 function Main {
     do {
         Show-Menu
-    $choice = Read-Host -Prompt "Please select an option [0-20] or [U]"
+    $choice = Read-Host -Prompt "Please select an option [0-20], [U], or [V]"
         switch ($choice) {
             '8' {
                 Clear-Host
@@ -5092,6 +5404,10 @@ net start $serviceName
                 Write-Host "Eclipse Smart Hub $EclipseSmartHubVersion installation started!" -ForegroundColor Green
                 Write-Host ""
                 Read-Host "Press Enter to continue back to the main menu"
+            }
+            'V' {
+                # VINLink Data Update - Install scheduled task
+                Start-VinLinkSetup
             }
             'U' {
                 # Launch Unattended Server Setup Mode
