@@ -1,14 +1,14 @@
-# PowerShell script for Eclipse Swiss Army Knife
+﻿# PowerShell script for Eclipse Swiss Army Knife
 # This script will provide a menu to perform the main actions described in the README
 # Run this script with Administrator privileges
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.8.3"
+$ScriptVersion = "2.8.4"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS (version derived from URL filename)
-$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2041-26-90.msi"
+$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2041-26-100.msi"
 $EclipseDmsVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)) -replace '\.msi$','' -replace '^Eclipse','' -replace '-','.').Trim()
 
 # Option 15: Eclipse Update Service (version derived from URL filename)
@@ -54,7 +54,7 @@ function Show-Menu {
     Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome $EclipseOnlineChromeVersion" -ForegroundColor Yellow
     Write-Host "[17] " -NoNewline; Write-Host "Download Eclipse Online Server $EclipseOnlineServerVersion" -ForegroundColor Yellow
     Write-Host "[18] " -NoNewline; Write-Host "Update IIS Application Pools" -ForegroundColor Yellow
-    Write-Host "[19] " -NoNewline; Write-Host "Install Win-ACMEv2" -ForegroundColor Yellow
+    Write-Host "[19] " -NoNewline; Write-Host "Propagate default printer to system profile (.DEFAULT)" -ForegroundColor Yellow
     Write-Host "[20] " -NoNewline; Write-Host "Install Eclipse Smart Hub $EclipseSmartHubVersion" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "[U]  " -NoNewline; Write-Host "Unattended Server Setup (Select Multiple Tasks)" -ForegroundColor Cyan
@@ -386,8 +386,7 @@ function Show-TaskSelectionMenu {
         @{Id=15; Name="Download Eclipse Update Service $EclipseUpdateServiceVersion"; Selected=$SelectedTasks[15]},
         @{Id=17; Name="Install Eclipse Online Server $EclipseOnlineServerVersion & Create IIS Binding"; Selected=$SelectedTasks[17]},
         @{Id=18; Name="Update IIS Application Pools"; Selected=$SelectedTasks[18]},
-        @{Id=19; Name="Install Eclipse Smart Hub $EclipseSmartHubVersion"; Selected=$SelectedTasks[19]},
-        @{Id=20; Name="Install Win-ACMEv2"; Selected=$SelectedTasks[20]}
+        @{Id=19; Name="Install Eclipse Smart Hub $EclipseSmartHubVersion"; Selected=$SelectedTasks[19]}
     )
     
     $currentIndex = 0
@@ -2883,123 +2882,111 @@ function Execute-Task18 {
     }
 }
 
-function Execute-Task19 {
-    param(
-        [string]$EclipseInstallPath
-    )
-    
-    Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Task 20: Install Win-ACMEv2" -ForegroundColor Yellow
-    Write-Host "===============================================" -ForegroundColor Cyan
+# Export HKCU printer-related keys, rewrite hive to HKEY_USERS\.DEFAULT, import (same idea as devices.reg / printerports.reg / windows.reg)
+function Invoke-DefaultPrinterRegistriesToDefaultUser {
+    Write-Host "Exports your current user's printer registry branches, rewrites them for the" -ForegroundColor Cyan
+    Write-Host "system default profile (HKEY_USERS\.DEFAULT), then imports them so the" -ForegroundColor Cyan
+    Write-Host "default user / non-interactive context can use your current default printer." -ForegroundColor Cyan
     Write-Host ""
-    
     try {
-        # Create Dependencies\Win-ACMEv2 directory
-        $targetDir = Join-Path $EclipseInstallPath "Dependencies\Win-ACMEv2"
-        if (!(Test-Path $targetDir)) {
-            New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-            Write-Host "Created directory: $targetDir" -ForegroundColor Green
-        } else {
-            Write-Host "Directory exists: $targetDir" -ForegroundColor Green
-        }
-        
-        # Check if already extracted
-        $exePath = Join-Path $targetDir "wacs.exe"
-        if (Test-Path $exePath) {
-            Write-Host "Win-ACMEv2 is already extracted in: $targetDir" -ForegroundColor Green
-            Write-Host "  Found: wacs.exe" -ForegroundColor Gray
-            Write-Host ""
-            
-            # Launch Win-ACMEv2 for user configuration
-            Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
-            Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
-            Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
-            Write-Host ""
-            
-            try {
-                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
-                
-                Write-Host ""
-                Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
-                Write-Host "Win-ACMEv2 task completed!" -ForegroundColor Cyan
-                return $true
-            } catch {
-                Write-Host "Error launching Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-                Write-Host "You can run it manually from: $targetDir" -ForegroundColor Gray
-                return $true  # Still return success since extraction worked
-            }
-        }
-        
-        # Download Win-ACMEv2
-        $winAcmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.trimmed.zip"
-        $zipPath = Join-Path $targetDir "win-acme.zip"
-        
-        Write-Host "Downloading Win-ACMEv2 v2.2.9.1701..." -ForegroundColor Yellow
-        Write-Host "  Source URL: $winAcmeUrl" -ForegroundColor Gray
-        Write-Host "  Destination: $zipPath" -ForegroundColor Gray
-        
-        try {
-            $webClient = New-Object System.Net.WebClient
-            $webClient.DownloadFile($winAcmeUrl, $zipPath)
-            $webClient.Dispose()
-            $fileSize = (Get-Item $zipPath).Length / 1MB
-            Write-Host "Download complete: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
-        } catch {
-            Write-Host "Error downloading Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-            return $false
-        }
-        
-        # Extract ZIP file
+        $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = [System.Security.Principal.WindowsPrincipal]::new($identity)
+        Write-Host "Current user: $($identity.Name)" -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "Extracting Win-ACMEv2..." -ForegroundColor Yellow
-        Write-Host "  Extracting to: $targetDir" -ForegroundColor Gray
-        
-        try {
-            Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
-            Write-Host "Extraction complete!" -ForegroundColor Green
-        } catch {
-            Write-Host "Error extracting Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-            return $false
+
+        $defaultPrinterName = $null
+        Import-Module PrintManagement -ErrorAction SilentlyContinue | Out-Null
+        $defPrinter = Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.Default -eq $true } | Select-Object -First 1
+        if ($defPrinter) {
+            $defaultPrinterName = $defPrinter.Name
         }
-        
-        # Clean up ZIP file
-        Write-Host "Cleaning up..." -ForegroundColor Gray
-        Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-        
-        # Verify extraction
-        if (Test-Path $exePath) {
-            Write-Host ""
-            Write-Host "Win-ACMEv2 extracted successfully!" -ForegroundColor Green
-            Write-Host "  Location: $targetDir" -ForegroundColor Gray
-            Write-Host "  Executable: wacs.exe" -ForegroundColor Gray
-            Write-Host ""
-            
-            # Launch Win-ACMEv2 for user configuration
-            Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
-            Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
-            Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
-            Write-Host ""
-            
-            try {
-                $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
-                
-                Write-Host ""
-                Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
-                Write-Host "Win-ACMEv2 installation completed!" -ForegroundColor Cyan
-                return $true
-            } catch {
-                Write-Host "Error launching Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-                Write-Host "Win-ACMEv2 is extracted but could not be launched automatically" -ForegroundColor Yellow
-                Write-Host "  You can run it manually from: $targetDir" -ForegroundColor Gray
-                return $true  # Still return success since extraction worked
+        if (-not $defaultPrinterName) {
+            $w32 = Get-CimInstance -ClassName Win32_Printer -Filter "Default=$true" -ErrorAction SilentlyContinue
+            if ($w32) { $defaultPrinterName = $w32.Name }
+        }
+        if (-not $defaultPrinterName) {
+            $winKey = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows'
+            if (Test-Path $winKey) {
+                $deviceVal = (Get-ItemProperty -Path $winKey -Name Device -ErrorAction SilentlyContinue).Device
+                if ($deviceVal -match '^([^,]+),') {
+                    $defaultPrinterName = $Matches[1].Trim()
+                } elseif ($deviceVal) {
+                    $defaultPrinterName = $deviceVal.Trim()
+                }
             }
-        } else {
-            Write-Host "Warning: Extraction completed but wacs.exe not found" -ForegroundColor Yellow
-            return $false
         }
+        if ($defaultPrinterName) {
+            Write-Host "Current default printer: $defaultPrinterName" -ForegroundColor Green
+        } else {
+            Write-Host "Could not detect a default printer for this user (set one in Settings if needed)." -ForegroundColor Yellow
+        }
+        Write-Host ""
+        Read-Host "Press Enter to continue (export .reg files, rewrite for .DEFAULT, then import)"
+
+        $tempDir = Join-Path $env:TEMP "EclipseSAK-PrinterReg-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
+        New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        Write-Host ""
+        Write-Host "Temporary folder: $tempDir" -ForegroundColor Gray
+
+        $baseReg = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion'
+        $exports = @(
+            @{ Subkey = 'Devices'; File = 'devices.reg' },
+            @{ Subkey = 'PrinterPorts'; File = 'printerports.reg' },
+            @{ Subkey = 'Windows'; File = 'windows.reg' }
+        )
+
+        foreach ($item in $exports) {
+            $keyPath = "$baseReg\$($item.Subkey)"
+            $outFile = Join-Path $tempDir $item.File
+            $regOut = & reg.exe export $keyPath $outFile /y 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "reg export failed for $keyPath : $regOut" -ForegroundColor Yellow
+                continue
+            }
+            if (-not (Test-Path $outFile)) {
+                Write-Host "Expected export file not found: $outFile" -ForegroundColor Red
+                continue
+            }
+            $raw = [System.IO.File]::ReadAllText($outFile)
+            $modified = $raw.Replace('HKEY_CURRENT_USER', 'HKEY_USERS\.DEFAULT')
+            $importFile = Join-Path $tempDir ($item.File -replace '\.reg$', '-default.reg')
+            $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
+            [System.IO.File]::WriteAllText($importFile, $modified, $utf16)
+        }
+
+        $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (-not $isAdmin) {
+            Write-Host ""
+            Write-Host "Administrator rights are required to import into HKEY_USERS\.DEFAULT." -ForegroundColor Red
+            Write-Host "Prepared files (original + *-default.reg) are in:" -ForegroundColor Yellow
+            Write-Host "  $tempDir" -ForegroundColor Gray
+            Write-Host "Run this script as Administrator and choose option 19 again, or import manually in order:" -ForegroundColor Yellow
+            Write-Host "  devices-default.reg, printerports-default.reg, windows-default.reg" -ForegroundColor Gray
+            return
+        }
+
+        Write-Host ""
+        Write-Host "Importing into HKEY_USERS\.DEFAULT (devices, printer ports, then windows)..." -ForegroundColor Yellow
+        foreach ($item in $exports) {
+            $importFile = Join-Path $tempDir ($item.File -replace '\.reg$', '-default.reg')
+            if (-not (Test-Path $importFile)) { continue }
+            $regImp = & reg.exe import $importFile 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "reg import failed for $(Split-Path $importFile -Leaf): $regImp" -ForegroundColor Red
+            } else {
+                Write-Host "Imported: $(Split-Path $importFile -Leaf)" -ForegroundColor Green
+            }
+        }
+
+        Write-Host ""
+        Write-Host "Original exports: devices.reg, printerports.reg, windows.reg" -ForegroundColor Cyan
+        Write-Host "Rewritten for .DEFAULT: *-default.reg (same folder if you need to re-import)." -ForegroundColor Gray
+        Write-Host "Folder: $tempDir" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "Eclipse Aura / EO IIS now fixed." -ForegroundColor Magenta
+        Write-Host "Documents should now preview correctly. Please test." -ForegroundColor Magenta
     } catch {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
-        return $false
     }
 }
 
@@ -3212,7 +3199,6 @@ function Execute-Tasks {
         17 = { Execute-Task17 -EclipseInstallPath $Config.EclipseInstallPath -EclipseAuraHubSubdomain $Config.EclipseAuraHubSubdomain -EclipseAuraHubPort $Config.EclipseAuraHubPort }
         18 = { Execute-Task18 -EclipseAuraHubSubdomain $Config.EclipseAuraHubSubdomain -EclipseAuraHubPort $Config.EclipseAuraHubPort }
         19 = { Execute-Task20 -EclipseInstallPath $Config.EclipseInstallPath }
-        20 = { Execute-Task19 -EclipseInstallPath $Config.EclipseInstallPath }
     }
     
     $taskNames = @{
@@ -3231,11 +3217,10 @@ function Execute-Tasks {
         17 = "Install Eclipse Online Server $EclipseOnlineServerVersion"
         18 = "Create IIS Application Pools & Site Binding"
         19 = "Install Eclipse Smart Hub $EclipseSmartHubVersion"
-        20 = "Install Win-ACMEv2"
     }
     
     # Count selected tasks
-    $validTaskIds = @(1, 2, 3, 4, 5, 6, 8, 11, 12, 13, 14, 15, 17, 18, 19, 20)
+    $validTaskIds = @(1, 2, 3, 4, 5, 6, 8, 11, 12, 13, 14, 15, 17, 18, 19)
     $totalTasks = 0
     foreach ($taskId in $validTaskIds) {
         if ($SelectedTasks[$taskId]) {
@@ -3413,8 +3398,8 @@ Summary: $successCount succeeded, $failCount failed
     
     Write-Host ""
     
-    # Check if any IIS/Eclipse Aura tasks (11-20) were selected
-    $eclipseAuraTasks = @(11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+    # Check if any IIS/Eclipse Aura tasks (11-19) were selected
+    $eclipseAuraTasks = @(11, 12, 13, 14, 15, 16, 17, 18, 19)
     $selectedAuraTasks = $eclipseAuraTasks | Where-Object { $SelectedTasks[$_] -eq $true }
     
     if ($selectedAuraTasks.Count -gt 0) {
@@ -3500,7 +3485,7 @@ function Start-UnattendedMode {
         1 = $false; 2 = $false; 3 = $false; 4 = $false; 5 = $false
         6 = $false; 8 = $false
         11 = $false; 12 = $false; 13 = $false; 14 = $false; 15 = $false
-        17 = $false; 18 = $false; 19 = $false; 20 = $false
+        17 = $false; 18 = $false; 19 = $false
     }
     
     # Show task selection menu
@@ -5271,103 +5256,10 @@ net start $serviceName
             '19' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Install Win-ACMEv2" -ForegroundColor Yellow
+                Write-Host "   Propagate default printer to system profile (.DEFAULT)" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 Write-Host ""
-                
-                # Get Eclipse Install Path
-                $defaultPath = "C:\Eclipse Install"
-                $eclipseInstallPath = Read-Host "Enter Eclipse Install Path (press Enter for default: $defaultPath)"
-                if ([string]::IsNullOrWhiteSpace($eclipseInstallPath)) {
-                    $eclipseInstallPath = $defaultPath
-                }
-                
-                # Create Dependencies\Win-ACMEv2 directory
-                $targetDir = Join-Path $eclipseInstallPath "Dependencies\Win-ACMEv2"
-                if (!(Test-Path $targetDir)) {
-                    Write-Host "Creating directory: $targetDir" -ForegroundColor Yellow
-                    New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-                    Write-Host "Created directory: $targetDir" -ForegroundColor Green
-                } else {
-                    Write-Host "Directory exists: $targetDir" -ForegroundColor Green
-                }
-                
-                # Check if already extracted
-                $exePath = Join-Path $targetDir "wacs.exe"
-                if (Test-Path $exePath) {
-                    Write-Host "Win-ACMEv2 is already extracted in: $targetDir" -ForegroundColor Green
-                    Write-Host ""
-                } else {
-                    # Download Win-ACMEv2
-                    $winAcmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.trimmed.zip"
-                    $zipPath = Join-Path $targetDir "win-acme.zip"
-                    
-                    Write-Host ""
-                    Write-Host "Downloading Win-ACMEv2 v2.2.9.1701..." -ForegroundColor Yellow
-                    Write-Host "  Source: $winAcmeUrl" -ForegroundColor Gray
-                    
-                    try {
-                        $webClient = New-Object System.Net.WebClient
-                        $webClient.DownloadFile($winAcmeUrl, $zipPath)
-                        $webClient.Dispose()
-                        $fileSize = (Get-Item $zipPath).Length / 1MB
-                        Write-Host "Download complete: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
-                    } catch {
-                        Write-Host "Error downloading Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-                        Write-Host ""
-                        Read-Host "Press Enter to continue back to the main menu"
-                        continue
-                    }
-                    
-                    # Extract ZIP file
-                    Write-Host ""
-                    Write-Host "Extracting Win-ACMEv2..." -ForegroundColor Yellow
-                    
-                    try {
-                        Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
-                        Write-Host "Extraction complete!" -ForegroundColor Green
-                    } catch {
-                        Write-Host "Error extracting Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-                        Write-Host ""
-                        Read-Host "Press Enter to continue back to the main menu"
-                        continue
-                    }
-                    
-                    # Clean up ZIP file
-                    Write-Host "Cleaning up..." -ForegroundColor Gray
-                    Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-                    
-                    # Verify extraction
-                    if (!(Test-Path $exePath)) {
-                        Write-Host "Warning: Extraction completed but wacs.exe not found" -ForegroundColor Yellow
-                        Write-Host ""
-                        Read-Host "Press Enter to continue back to the main menu"
-                        continue
-                    }
-                    
-                    Write-Host ""
-                    Write-Host "Win-ACMEv2 extracted successfully!" -ForegroundColor Green
-                    Write-Host "  Location: $targetDir" -ForegroundColor Gray
-                    Write-Host ""
-                }
-                
-                # Launch Win-ACMEv2 for user configuration
-                Write-Host "Launching Win-ACMEv2 as Administrator for configuration..." -ForegroundColor Yellow
-                Write-Host "  Please configure your SSL certificates" -ForegroundColor Cyan
-                Write-Host "  The script will wait until you close Win-ACMEv2" -ForegroundColor Cyan
-                Write-Host ""
-                
-                try {
-                    $process = Start-Process -FilePath $exePath -WorkingDirectory $targetDir -Verb RunAs -PassThru -Wait
-                    
-                    Write-Host ""
-                    Write-Host "Win-ACMEv2 closed (exit code: $($process.ExitCode))" -ForegroundColor Green
-                    Write-Host "Win-ACMEv2 configuration completed!" -ForegroundColor Cyan
-                } catch {
-                    Write-Host "Error launching Win-ACMEv2: $($_.Exception.Message)" -ForegroundColor Red
-                    Write-Host "You can run it manually from: $targetDir" -ForegroundColor Gray
-                }
-                
+                Invoke-DefaultPrinterRegistriesToDefaultUser
                 Write-Host ""
                 Read-Host "Press Enter to continue back to the main menu"
             }
