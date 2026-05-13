@@ -4,11 +4,11 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.8.4"
+$ScriptVersion = "2.8.5"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS (version derived from URL filename)
-$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2041-26-100.msi"
+$EclipseDmsUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseDesktop/Eclipse2041-26-117.msi"
 $EclipseDmsVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseDmsUrl -Leaf)) -replace '\.msi$','' -replace '^Eclipse','' -replace '-','.').Trim()
 
 # Option 15: Eclipse Update Service (version derived from URL filename)
@@ -16,11 +16,11 @@ $EclipseUpdateServiceUrl = "http://ws.dev.ultimate.net.au:8029/downloads/Eclipse
 $EclipseUpdateServiceVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseUpdateServiceUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 16: Eclipse Online Chrome (version derived from URL filename)
-$EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%204.5.9.msi"
+$EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineChrome/EclipseOnline%20Chrome%204.9.6.msi"
 $EclipseOnlineChromeVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineChromeUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 17: Eclipse Online Server (version derived from URL filename)
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.12.17.0.exe"
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.15.6.0.exe"
 $EclipseOnlineServerVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineServerUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 20: Eclipse Smart Hub (version derived from URL filename)
