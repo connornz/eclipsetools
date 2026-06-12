@@ -4,7 +4,7 @@
 # Created by Connor Brown for Eclipse Support Team to assist making our life #easier
 
 # Script Version - Used for automatic update checking
-$ScriptVersion = "2.8.5"
+$ScriptVersion = "2.8.6"
 
 # Download URLs - Update these when new versions are released
 # Option 6: Eclipse DMS (version derived from URL filename)
@@ -20,12 +20,17 @@ $EclipseOnlineChromeUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseO
 $EclipseOnlineChromeVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineChromeUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 17: Eclipse Online Server (version derived from URL filename)
-$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.15.6.0.exe"
+$EclipseOnlineServerUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseOnlineServer/EclipseOnline%20Server%2012.17.3.0.exe"
 $EclipseOnlineServerVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseOnlineServerUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
 
 # Option 20: Eclipse Smart Hub (version derived from URL filename)
 $EclipseSmartHubUrl = "http://ws.dev.ultimate.net.au:8029/downloads/EclipseSmartHub/EclipseSmartHubInstaller%2012.4.1.0.exe"
 $EclipseSmartHubVersion = ([System.Net.WebUtility]::UrlDecode((Split-Path $EclipseSmartHubUrl -Leaf)) -replace '.*?(\d+(\.\d+)+)\.(exe|msi)$','$1').Trim()
+
+# Option 13: ASP.NET Core Runtime & .NET Runtime (version derived from URL filename)
+$AspNetCoreRuntimeUrl = "https://tnh.net.au/packages/aspnetcore-runtime-8.0.28-win-x86.exe"
+$DotNetRuntimeUrl = "https://tnh.net.au/packages/dotnet-runtime-8.0.28-win-x86.exe"
+$DotNet8Version = (($AspNetCoreRuntimeUrl -replace '.*?(\d+(\.\d+)+)-win-.*','$1').Trim())
 
 function Show-Menu {
     Clear-Host
@@ -48,7 +53,7 @@ function Show-Menu {
     Write-Host "--- Eclipse Online Services ---" -ForegroundColor Blue
     Write-Host "[11] " -NoNewline; Write-Host "Install Microsoft IIS Server + Dependencies" -ForegroundColor Yellow
     Write-Host "[12] " -NoNewline; Write-Host "Download IIS URL Rewrite Module (Install IIS First)" -ForegroundColor Yellow
-    Write-Host "[13] " -NoNewline; Write-Host "Download .NET 8 Core + ASP 8 + Runtime 8" -ForegroundColor Yellow
+    Write-Host "[13] " -NoNewline; Write-Host "Download ASP.NET Core Runtime $DotNet8Version & .NET Runtime $DotNet8Version" -ForegroundColor Yellow
     Write-Host "[14] " -NoNewline; Write-Host "Download .NET Framework 4.8 (System Restart Needed)" -ForegroundColor Yellow
     Write-Host "[15] " -NoNewline; Write-Host "Download Eclipse Update Service $EclipseUpdateServiceVersion" -ForegroundColor Yellow
     Write-Host "[16] " -NoNewline; Write-Host "Download Eclipse Online Chrome $EclipseOnlineChromeVersion" -ForegroundColor Yellow
@@ -381,7 +386,7 @@ function Show-TaskSelectionMenu {
         @{Id=8; Name="Add Ultimate Domains to Trusted Sites"; Selected=$SelectedTasks[8]},
         @{Id=11; Name="Install Microsoft IIS Server + Dependencies"; Selected=$SelectedTasks[11]},
         @{Id=12; Name="Download IIS URL Rewrite Module"; Selected=$SelectedTasks[12]},
-        @{Id=13; Name="Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22"; Selected=$SelectedTasks[13]},
+        @{Id=13; Name="Install ASP.NET Core Runtime $DotNet8Version & .NET Runtime $DotNet8Version"; Selected=$SelectedTasks[13]},
         @{Id=14; Name="Download .NET Framework 4.8"; Selected=$SelectedTasks[14]},
         @{Id=15; Name="Download Eclipse Update Service $EclipseUpdateServiceVersion"; Selected=$SelectedTasks[15]},
         @{Id=17; Name="Install Eclipse Online Server $EclipseOnlineServerVersion & Create IIS Binding"; Selected=$SelectedTasks[17]},
@@ -1634,7 +1639,7 @@ function Execute-Task13 {
     )
     
     Write-Host "===============================================" -ForegroundColor Cyan
-    Write-Host "   Task 13: Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22" -ForegroundColor Yellow
+    Write-Host "   Task 13: Install ASP.NET Core Runtime $DotNet8Version & .NET Runtime $DotNet8Version" -ForegroundColor Yellow
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -1644,48 +1649,65 @@ function Execute-Task13 {
             New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
         }
         
-        Write-Host "Installing .NET 8 components via winget..." -ForegroundColor Yellow
         $packages = @(
             @{
-                Id = "Microsoft.DotNet.HostingBundle.8"
-                Name = "ASP.NET Core Hosting Bundle 8.0.22"
-                Version = "8.0.22"
+                Url = $AspNetCoreRuntimeUrl
+                Name = "ASP.NET Core Runtime $DotNet8Version"
             },
             @{
-                Id = "Microsoft.DotNet.DesktopRuntime.8"
-                Name = ".NET Desktop Runtime 8.0.22"
-                Version = "8.0.22"
+                Url = $DotNetRuntimeUrl
+                Name = ".NET Runtime $DotNet8Version"
             }
         )
         
         $allSuccess = $true
         foreach ($package in $packages) {
-            Write-Host "Installing $($package.Name)..." -ForegroundColor Gray
-            $installArgs = "install --id $($package.Id) --version $($package.Version) --silent --accept-package-agreements --accept-source-agreements"
-            $process = Start-Process -FilePath "winget" -ArgumentList $installArgs -Wait -PassThru -NoNewWindow
-            if ($process.ExitCode -eq 0) {
+            $installerPath = Join-Path $targetDir (Split-Path $package.Url -Leaf)
+            
+            if (Test-Path $installerPath) {
+                Write-Host "$($package.Name) installer already downloaded: $installerPath" -ForegroundColor Green
+            } else {
+                Write-Host "Downloading $($package.Name)..." -ForegroundColor Yellow
+                Write-Host "  Source URL: $($package.Url)" -ForegroundColor Gray
+                Write-Host "  Destination: $installerPath" -ForegroundColor Gray
+                $prevProtocol = [Net.ServicePointManager]::SecurityProtocol
+                try {
+                    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+                } catch {
+                    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                }
+                try {
+                    $webClient = New-Object System.Net.WebClient
+                    $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PowerShell-EclipseSwissArmyKnife")
+                    $webClient.DownloadFile($package.Url, $installerPath)
+                    $webClient.Dispose()
+                } catch {
+                    [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
+                    Write-Host "Download failed for $($package.Name): $($_.Exception.Message)" -ForegroundColor Red
+                    $allSuccess = $false
+                    continue
+                }
+                [Net.ServicePointManager]::SecurityProtocol = $prevProtocol
+                Write-Host "Download complete: $installerPath" -ForegroundColor Green
+            }
+            
+            Write-Host "Installing $($package.Name)..." -ForegroundColor Yellow
+            $installArgs = "/install /quiet /norestart"
+            $process = Start-Process -FilePath $installerPath -ArgumentList $installArgs -Wait -PassThru -NoNewWindow
+            if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) {
                 Write-Host "$($package.Name) installed successfully" -ForegroundColor Green
             } else {
                 Write-Host "Warning: $($package.Name) installation returned exit code: $($process.ExitCode)" -ForegroundColor Yellow
-                # Try without version pinning as fallback
-                Write-Host "  Attempting installation without version pinning..." -ForegroundColor Gray
-                $fallbackArgs = "install --id $($package.Id) --silent --accept-package-agreements --accept-source-agreements"
-                $fallbackProcess = Start-Process -FilePath "winget" -ArgumentList $fallbackArgs -Wait -PassThru -NoNewWindow
-                if ($fallbackProcess.ExitCode -eq 0) {
-                    Write-Host "$($package.Name) installed successfully (latest version)" -ForegroundColor Green
-                } else {
-                    Write-Host "  Failed to install $($package.Name)" -ForegroundColor Red
-                    $allSuccess = $false
-                }
+                $allSuccess = $false
             }
         }
         
         if ($allSuccess) {
-            Write-Host "ASP.NET Core Hosting Bundle 8.0.22 and .NET Desktop Runtime 8.0.22 installed successfully!" -ForegroundColor Cyan
+            Write-Host "ASP.NET Core Runtime $DotNet8Version and .NET Runtime $DotNet8Version installed successfully!" -ForegroundColor Cyan
             return $true
         } else {
             Write-Host ".NET 8 installation completed with warnings." -ForegroundColor Yellow
-            return $true  # Still consider success
+            return $true
         }
     } catch {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
@@ -3211,7 +3233,7 @@ function Execute-Tasks {
         8 = "Add Ultimate Domains to Trusted Sites"
         11 = "Install Microsoft IIS Server + Dependencies"
         12 = "Download & Install IIS URL Rewrite Module"
-        13 = "Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22"
+        13 = "Install ASP.NET Core Runtime $DotNet8Version & .NET Runtime $DotNet8Version"
         14 = "Download & Install .NET Framework 4.8"
         15 = "Download & Install Eclipse Update Service $EclipseUpdateServiceVersion"
         17 = "Install Eclipse Online Server $EclipseOnlineServerVersion"
@@ -5080,59 +5102,12 @@ net start $serviceName
             '13' {
                 Clear-Host
                 Write-Host "===============================================" -ForegroundColor Cyan
-                Write-Host "   Install ASP.NET Core Hosting Bundle 8.0.22 & .NET Desktop Runtime 8.0.22" -ForegroundColor Yellow
+                Write-Host "   Install ASP.NET Core Runtime $DotNet8Version & .NET Runtime $DotNet8Version" -ForegroundColor Yellow
                 Write-Host "===============================================" -ForegroundColor Cyan
                 Write-Host ""
                 
                 try {
-                    $targetDir = "C:\Eclipse Install\Dependencies"
-                    if (!(Test-Path $targetDir)) {
-                        New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-                    }
-                    
-                    Write-Host "Installing .NET 8 components via winget..." -ForegroundColor Yellow
-                    $packages = @(
-                        @{
-                            Id = "Microsoft.DotNet.HostingBundle.8"
-                            Name = "ASP.NET Core Hosting Bundle 8.0.22"
-                            Version = "8.0.22"
-                        },
-                        @{
-                            Id = "Microsoft.DotNet.DesktopRuntime.8"
-                            Name = ".NET Desktop Runtime 8.0.22"
-                            Version = "8.0.22"
-                        }
-                    )
-                    
-                    $allSuccess = $true
-                    foreach ($package in $packages) {
-                        Write-Host "Installing $($package.Name)..." -ForegroundColor Gray
-                        $installArgs = "install --id $($package.Id) --version $($package.Version) --silent --accept-package-agreements --accept-source-agreements"
-                        $process = Start-Process -FilePath "winget" -ArgumentList $installArgs -Wait -PassThru -NoNewWindow
-                        if ($process.ExitCode -eq 0) {
-                            Write-Host "$($package.Name) installed successfully" -ForegroundColor Green
-                        } else {
-                            Write-Host "Warning: $($package.Name) installation returned exit code: $($process.ExitCode)" -ForegroundColor Yellow
-                            # Try without version pinning as fallback
-                            Write-Host "  Attempting installation without version pinning..." -ForegroundColor Gray
-                            $fallbackArgs = "install --id $($package.Id) --silent --accept-package-agreements --accept-source-agreements"
-                            $fallbackProcess = Start-Process -FilePath "winget" -ArgumentList $fallbackArgs -Wait -PassThru -NoNewWindow
-                            if ($fallbackProcess.ExitCode -eq 0) {
-                                Write-Host "$($package.Name) installed successfully (latest version)" -ForegroundColor Green
-                            } else {
-                                Write-Host "  Failed to install $($package.Name)" -ForegroundColor Red
-                                $allSuccess = $false
-                            }
-                        }
-                    }
-                    
-                    if ($allSuccess) {
-                        Write-Host ""
-                        Write-Host "ASP.NET Core Hosting Bundle 8.0.22 and .NET Desktop Runtime 8.0.22 installed successfully!" -ForegroundColor Cyan
-                    } else {
-                        Write-Host ""
-                        Write-Host ".NET 8 installation completed with warnings." -ForegroundColor Yellow
-                    }
+                    $null = Execute-Task13 -EclipseInstallPath "C:\Eclipse Install"
                 } catch {
                     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
                 }
